@@ -56,10 +56,7 @@ document.getElementById('action-btn').onclick = function() {
         redGuess = tempMarker.getLatLng();
         map.removeLayer(tempMarker); tempMarker = null;
         turn = 'Dressinen';
-        
-        // Återställ karta till startvy innan Dressinen får turen
-        map.setView([50, 10], 3);
-        
+        map.setView([50, 10], 3); // Återställ karta till startvy för nästa lag
         loadRound(); 
     } else {
         blueGuess = tempMarker.getLatLng();
