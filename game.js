@@ -4,7 +4,12 @@ let redGuess, blueGuess, tempMarker, roundMarkers = [], map;
 const allQuestions = [
     { name: 'Eiffeltornet', url: 'eiffeltornet.jpg', lat: 48.8584, lng: 2.2945 },
     { name: 'Berlinmuren', url: 'berlinmuren.jpg', lat: 52.5167, lng: 13.3775 },
-    { name: 'Tjernobyl', url: 'tjernobyl.jpg', lat: 51.3896, lng: 30.0998 }
+    { name: 'Tjernobyl', url: 'tjernobyl.jpg', lat: 51.3896, lng: 30.0998 },
+    { name: 'Colosseum', url: 'colosseum.jpg', lat: 41.8902, lng: 12.4922 },
+    { name: 'Pyramiderna', url: 'pyramiderna.jpg', lat: 29.9792, lng: 31.1342 },
+    { name: 'Machu Picchu', url: 'machu-picchu.jpg', lat: -13.1631, lng: -72.5450 },
+    { name: 'Kinesiska muren', url: 'muren-i-kina.jpg', lat: 40.4319, lng: 116.5704 },
+    { name: 'Frihetsgudinnan', url: 'frihetsgudinnan.jpg', lat: 40.6892, lng: -74.0445 }
 ];
 let questions = [];
 
