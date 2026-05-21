@@ -77,19 +77,31 @@ function showResults() {
     
     document.getElementById('score-board').innerText = `Första klass: ${score1} | Dressinen: ${score2}`;
     document.getElementById('result-box').style.display = 'block';
+    
     let winnerText = (distRaw1 < distRaw2) ? "Första klass vinner rundan!" : (distRaw2 < distRaw1 ? "Dressinen vinner rundan!" : "Oavgjort!");
 
     document.getElementById('result-box').innerHTML = `<strong>${q.name}</strong><br>Första klass: ${formatDist(distRaw1)} km | Dressinen: ${formatDist(distRaw2)} km<br><strong>${winnerText}</strong>`;
     
+    // Visa markörer
     roundMarkers.push(L.marker([q.lat, q.lng], {icon: getIcon('green')}).addTo(map));
     roundMarkers.push(L.marker(redGuess, {icon: getIcon('red')}).addTo(map));
     roundMarkers.push(L.marker(blueGuess, {icon: getIcon('blue')}).addTo(map));
 
+    // ÄNDRING HÄR: 
+    // Vi döljer inte action-knappen direkt om matchen är slut, 
+    // vi låter användaren se statistiken och visa vinstskärmen via en ny knapp
+    document.getElementById('action-btn').style.display = 'none';
+    
     if (score1 >= 3 || score2 >= 3) {
-        document.getElementById('win-screen').style.display = 'flex';
-        document.getElementById('win-text').innerText = (score1 >= 3 ? "Första klass" : "Dressinen") + " vann matchen!";
+        // Skapa en knapp för att gå vidare till vinstskärmen
+        let finishBtn = document.createElement("button");
+        finishBtn.innerText = "Se slutresultat";
+        finishBtn.onclick = () => {
+            document.getElementById('win-screen').style.display = 'flex';
+            document.getElementById('win-text').innerText = (score1 >= 3 ? "Första klass" : "Dressinen") + " vann matchen!";
+        };
+        document.getElementById('result-box').appendChild(finishBtn);
     } else {
-        document.getElementById('action-btn').style.display = 'none';
         document.getElementById('next-btn').style.display = 'inline-block';
     }
 }
