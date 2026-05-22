@@ -62,8 +62,10 @@ function startRound() {
     document.getElementById('game-area').style.display = 'flex';
     let q = questions[currentRound];
     
-    // Uppdaterad bildhämtning för bättre kompatibilitet
-    document.getElementById('game-image').src = `https://en.wikipedia.org/wiki/Special:FilePath/${encodeURIComponent(q.name.replace(/ /g, '_'))}.jpg`;
+    // Förbättrad bildladdning med fallback
+    let img = document.getElementById('game-image');
+    img.onerror = function() { this.src = 'https://via.placeholder.com/400x250?text=Bild+saknas'; };
+    img.src = `https://en.wikipedia.org/wiki/Special:FilePath/${encodeURIComponent(q.name.replace(/ /g, '_'))}.jpg`;
     
     if (!map) {
         map = L.map('map', { minZoom: 2 }).setView([20, 0], 2);
@@ -76,57 +78,58 @@ function startRound() {
     if (mode === 'lag') startTimer();
 }
 
-function startTimer() {
-    timeLeft = 15;
-    let tEl = document.getElementById('timer');
-    timer = setInterval(() => {
-        timeLeft--;
-        if (tEl) tEl.innerText = "Tid: " + timeLeft;
-        if (timeLeft <= 0) { clearInterval(timer); processGuess(); }
-    }, 1000);
-}
-
 function processGuess() {
     if (timer) clearInterval(timer);
     let guess = tempMarker ? tempMarker.getLatLng() : null;
+    
     if (mode === 'solo') {
         redGuess = guess;
         if (tempMarker) { tempMarker.setIcon(getIcon('green')); roundMarkers.push(tempMarker); tempMarker = null; }
         showResults();
     } else if (turn === 'Första klass') {
         redGuess = guess;
-        if (tempMarker) { tempMarker.setIcon(getIcon('red')); tempMarker.setOpacity(0); roundMarkers.push(tempMarker); tempMarker = null; }
-        turn = 'Dressinen'; loadRound();
+        if (tempMarker) { 
+            tempMarker.setIcon(getIcon('red')); 
+            tempMarker.setOpacity(0); // Dölj för lag 2
+            roundMarkers.push(tempMarker); 
+            tempMarker = null; 
+        }
+        turn = 'Dressinen'; 
+        loadRound(); // Går vidare utan att visa facit
     } else {
         blueGuess = guess;
         if (tempMarker) { tempMarker.setIcon(getIcon('blue')); roundMarkers.push(tempMarker); tempMarker = null; }
-        showResults();
+        showResults(); // Visar facit först HÄR
     }
 }
 
 function showResults() {
     roundMarkers.forEach(m => m.setOpacity(1));
-    let resBox = document.getElementById('result-box');
-    if (resBox) resBox.style.display = 'block';
+    document.getElementById('result-box').style.display = 'block';
     document.getElementById('action-btn').style.display = 'none';
     document.getElementById('next-btn').style.display = 'inline-block';
     
     let q = questions[currentRound];
-    L.marker([q.lat, q.lng], { icon: getIcon('green') }).addTo(map);
+    // Facit läggs till HÄR
+    let correct = L.marker([q.lat, q.lng], { icon: getIcon('green') }).addTo(map);
+    roundMarkers.push(correct);
+    
     let dist1 = redGuess ? map.distance(redGuess, [q.lat, q.lng]) / 1000 : null;
     let dist2 = blueGuess ? map.distance(blueGuess, [q.lat, q.lng]) / 1000 : null;
     let fmt = (d) => d === null ? "Missat" : Math.round(d) + " km";
     
-    if (resBox) resBox.innerHTML = `<strong>${q.name}</strong><br>Första Klass: ${fmt(dist1)}<br>Dressinen: ${fmt(dist2)}<br><strong style="color:#f1c40f;">${(dist1 < dist2) ? "Första Klass vann!" : (dist2 < dist1) ? "Dressinen vann!" : "Oavgjort!"}</strong>`;
+    document.getElementById('result-box').innerHTML = `<strong>${q.name}</strong><br>Första Klass: ${fmt(dist1)}<br>Dressinen: ${fmt(dist2)}<br><strong style="color:#f1c40f;">${(dist1 < dist2) ? "Första Klass vann!" : (dist2 < dist1) ? "Dressinen vann!" : "Oavgjort!"}</strong>`;
     if (dist1 !== null && dist2 !== null) { if (dist1 < dist2) score1++; else if (dist2 < dist1) score2++; }
-    let scoreEl = document.getElementById('score-board');
-    if (scoreEl) scoreEl.innerText = `Första Klass: ${score1} | Dressinen: ${score2}`;
+    document.getElementById('score-board').innerText = `Första Klass: ${score1} | Dressinen: ${score2}`;
 }
 
 function nextRound() {
     currentRound++; turn = 'Första klass';
+    // Total rensning av kartan
     roundMarkers.forEach(m => map.removeLayer(m));
     roundMarkers = [];
+    if (tempMarker) { map.removeLayer(tempMarker); tempMarker = null; }
+    
     document.getElementById('result-box').style.display = 'none';
     document.getElementById('next-btn').style.display = 'none';
     document.getElementById('action-btn').style.display = 'inline-block';
