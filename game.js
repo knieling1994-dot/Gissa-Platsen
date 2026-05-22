@@ -62,11 +62,7 @@ function startTimer() {
     timer = setInterval(() => {
         timeLeft--;
         document.getElementById('timer').innerText = "Tid: " + timeLeft;
-        // Här tog vi bort if-satsen med playSound(880, 0.1)
-        if (timeLeft <= 0) { 
-            clearInterval(timer); 
-            processGuess(); 
-        }
+        if (timeLeft <= 0) { clearInterval(timer); processGuess(); }
     }, 1000);
 }
 
@@ -76,17 +72,29 @@ function processGuess() {
     
     if (mode === 'solo') {
         redGuess = guess;
-        if (tempMarker) map.removeLayer(tempMarker); tempMarker = null;
+        if (tempMarker) {
+            tempMarker.setIcon(getIcon('green'));
+            roundMarkers.push(tempMarker);
+            tempMarker = null;
+        }
         showResults();
     } else if (turn === 'Första klass') {
         redGuess = guess;
-        if (tempMarker) map.removeLayer(tempMarker); tempMarker = null;
+        if (tempMarker) {
+            tempMarker.setIcon(getIcon('red'));
+            roundMarkers.push(tempMarker);
+            tempMarker = null;
+        }
         turn = 'Dressinen';
         map.setView([50, 10], 3);
         loadRound(); 
     } else {
         blueGuess = guess;
-        if (tempMarker) map.removeLayer(tempMarker); tempMarker = null;
+        if (tempMarker) {
+            tempMarker.setIcon(getIcon('blue'));
+            roundMarkers.push(tempMarker);
+            tempMarker = null;
+        }
         showResults();
     }
 }
@@ -96,9 +104,13 @@ document.getElementById('action-btn').onclick = processGuess;
 function showResults() {
     document.getElementById('result-box').style.display = 'block';
     document.getElementById('action-btn').style.display = 'none';
-    document.getElementById('next-btn').style.display = 'block'; // Ändra till block
+    document.getElementById('next-btn').style.display = 'block';
     
     let q = questions[currentRound];
+    // Visa rätt svar
+    let correct = L.marker([q.lat, q.lng], {icon: getIcon('green')}).addTo(map);
+    roundMarkers.push(correct);
+    
     let dist1 = redGuess ? map.distance(redGuess, [q.lat, q.lng]) / 1000 : 9999999999999;
     let dist2 = blueGuess ? map.distance(blueGuess, [q.lat, q.lng]) / 1000 : 9999999999999;
     
@@ -112,11 +124,13 @@ function showResults() {
         html += `Första Klass: ${fmt(dist1)}<br>Dressinen: ${fmt(dist2)}<br><strong>${(dist1 < dist2) ? "Första Klass vann!" : (dist2 < dist1) ? "Dressinen vann!" : "Oavgjort!"}</strong>`;
         document.getElementById('score-board').innerText = `Första Klass: ${score1} | Dressinen: ${score2}`;
     }
-    document.getElementById('result-box').innerHTML = `<strong>${q.name}</strong><br>Avstånd: ${fmt(dist1)} km`; 
+    document.getElementById('result-box').innerHTML = html;
 }
 
 document.getElementById('next-btn').onclick = () => {
     currentRound++; turn = 'Första klass';
+    roundMarkers.forEach(m => map.removeLayer(m));
+    roundMarkers = [];
     document.getElementById('result-box').style.display = 'none';
     document.getElementById('next-btn').style.display = 'none';
     document.getElementById('action-btn').style.display = 'inline-block';
