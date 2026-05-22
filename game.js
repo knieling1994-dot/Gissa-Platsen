@@ -96,7 +96,7 @@ document.getElementById('action-btn').onclick = processGuess;
 function showResults() {
     document.getElementById('result-box').style.display = 'block';
     document.getElementById('action-btn').style.display = 'none';
-    document.getElementById('next-btn').style.display = 'inline-block';
+    document.getElementById('next-btn').style.display = 'block'; // Ändra till block
     
     let q = questions[currentRound];
     let dist1 = redGuess ? map.distance(redGuess, [q.lat, q.lng]) / 1000 : 9999999999999;
@@ -112,7 +112,7 @@ function showResults() {
         html += `Första Klass: ${fmt(dist1)}<br>Dressinen: ${fmt(dist2)}<br><strong>${(dist1 < dist2) ? "Första Klass vann!" : (dist2 < dist1) ? "Dressinen vann!" : "Oavgjort!"}</strong>`;
         document.getElementById('score-board').innerText = `Första Klass: ${score1} | Dressinen: ${score2}`;
     }
-    document.getElementById('result-box').innerHTML = html;
+    document.getElementById('result-box').innerHTML = `<strong>${q.name}</strong><br>Avstånd: ${fmt(dist1)} km`; 
 }
 
 document.getElementById('next-btn').onclick = () => {
