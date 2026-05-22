@@ -62,7 +62,11 @@ function startTimer() {
     timer = setInterval(() => {
         timeLeft--;
         document.getElementById('timer').innerText = "Tid: " + timeLeft;
-        if (timeLeft <= 0) { clearInterval(timer); processGuess(); }
+        // Här tog vi bort if-satsen med playSound(880, 0.1)
+        if (timeLeft <= 0) { 
+            clearInterval(timer); 
+            processGuess(); 
+        }
     }, 1000);
 }
 
