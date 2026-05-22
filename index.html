@@ -2,6 +2,7 @@
 <html lang="sv">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Resekollen - Gissa Platsen</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <style>
@@ -13,13 +14,17 @@
             background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://www.transparenttextures.com/patterns/world-map.png'), #2c3e50;
             color: #ecf0f1; 
         }
-        #menu, #win-screen, #turn-screen { position: fixed; top:0; left:0; width:100%; height:100%; background:#2c3e50; z-index:9999; display:flex; flex-direction:column; justify-content:center; align-items:center; }
+        #menu, #win-screen, #turn-screen, #video-screen { 
+            position: fixed; top:0; left:0; width:100%; height:100%; 
+            background:#2c3e50; z-index:9999; display:flex; 
+            flex-direction:column; justify-content:center; align-items:center; 
+        }
         #game-area { display: none; padding: 20px; }
         #map { height: 400px !important; width: 90% !important; margin: 20px auto; border: 5px solid #e67e22; border-radius: 10px; cursor: crosshair; }
         #timer { font-size: 3em; color: #e74c3c; font-weight: bold; margin: 10px; text-shadow: 2px 2px #000; }
         button { padding: 15px 30px; font-size: 20px; cursor: pointer; border-radius: 30px; border: none; background: #e67e22; color: white; transition: 0.3s; margin: 10px; }
         button:hover { background: #d35400; transform: scale(1.1); }
-        #result-box { display:none; margin: 20px auto; padding: 20px; background: #34495e; width: 80%; border-left: 5px solid #e67e22; }
+        #result-box { display:none; margin: 20px auto; padding: 20px; background: #34495e; width: 80%; border-left: 5px solid #e67e22; border-radius: 5px; }
     </style>
 </head>
 <body>
@@ -29,6 +34,14 @@
     <p>Hur väl känner du världen?</p>
     <button onclick="startGame('lag')">Tävla i lag (Första Klass mot Dressinen)</button>
     <button onclick="startGame('solo')">Spela solo</button>
+</div>
+
+<div id="video-screen" style="display:none;">
+    <video id="intro-video" width="80%" controls>
+        <source src="intro.mp4" type="video/mp4">
+        Din webbläsare stödjer inte video.
+    </video>
+    <button onclick="finishVideo()">Hoppa över intro</button>
 </div>
 
 <div id="turn-screen" style="display:none;">
