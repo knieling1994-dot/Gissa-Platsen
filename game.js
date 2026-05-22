@@ -25,6 +25,7 @@ function startGame(selectedMode) {
     if (mode === 'lag') {
         document.getElementById('video-screen').style.display = 'flex';
         document.getElementById('intro-video').onended = finishVideo;
+        document.getElementById('intro-video').play(); // Auto-starta intro
     } else {
         loadRound();
     }
@@ -83,7 +84,7 @@ function startTimer() {
 function processGuess() {
     if (timer) clearInterval(timer);
     let guess = tempMarker ? tempMarker.getLatLng() : null;
-    
+
     if (mode === 'solo') {
         redGuess = guess;
         if (tempMarker) {
@@ -102,7 +103,7 @@ function processGuess() {
         }
         turn = 'Dressinen';
         map.setView([50, 10], 3);
-        loadRound(); 
+        loadRound();
     } else {
         blueGuess = guess;
         if (tempMarker) {
@@ -114,59 +115,32 @@ function processGuess() {
     }
 }
 
+// --- Resultat ---
+
 function showResults() {
-    // Visa alla pins igen
-    roundMarkers.forEach(m => m.setOpacity(1));
-    
+    roundMarkers.forEach(m => m.setOpacity(1)); // Visa alla pins
     document.getElementById('result-box').style.display = 'block';
     document.getElementById('action-btn').style.display = 'none';
     document.getElementById('next-btn').style.display = 'block';
-    
+
     let q = questions[currentRound];
-    let correct = L.marker([q.lat, q.lng], {icon: getIcon('green')}).addTo(map);
+    let correct = L.marker([q.lat, q.lng], { icon: getIcon('green') }).addTo(map);
     roundMarkers.push(correct);
-    
+
     let dist1 = redGuess ? map.distance(redGuess, [q.lat, q.lng]) / 1000 : null;
     let dist2 = blueGuess ? map.distance(blueGuess, [q.lat, q.lng]) / 1000 : null;
-    
+
     let fmt = (d) => d === null ? "Missat" : Math.round(d) + " km";
-    
-    // Använd samma stil som statistiken för att få skarp text
+
     let html = `<div style="font-family: Impact, sans-serif; font-size: 1.2em;">
                 <strong>${q.name}</strong><br>
                 Första Klass: ${fmt(dist1)}<br>
                 Dressinen: ${fmt(dist2)}<br>
                 <strong style="color: #f1c40f;">${(dist1 < dist2) ? "Första Klass vann rundan!" : (dist2 < dist1) ? "Dressinen vann rundan!" : "Oavgjort!"}</strong>
                 </div>`;
-    
+
     document.getElementById('result-box').innerHTML = html;
-}
-
-function showResults() {
-    // Gör Lag 1-markören synlig igen
-    roundMarkers.forEach(m => m.setOpacity(1));
-    
-    document.getElementById('result-box').style.display = 'block';
-    document.getElementById('action-btn').style.display = 'none';
-    document.getElementById('next-btn').style.display = 'block';
-
-    let q = questions[currentRound];
-    
-    // Visa facit
-    let correct = L.marker([q.lat, q.lng], {icon: getIcon('green')}).addTo(map);
-    roundMarkers.push(correct);
-
-    let dist1 = redGuess ? map.distance(redGuess, [q.lat, q.lng]) / 1000 : null;
-    let dist2 = blueGuess ? map.distance(blueGuess, [q.lat, q.lng]) / 1000 : null;
-    
-    let fmt = (d) => d === null ? "Missat" : Math.round(d) + " km";
-
-    let html = `<strong>${q.name}</strong><br>
-                Första Klass: ${fmt(dist1)}<br>
-                Dressinen: ${fmt(dist2)}<br>
-                <strong>${(dist1 < dist2) ? "Första Klass vann!" : (dist2 < dist1) ? "Dressinen vann!" : "Oavgjort!"}</strong>`;
-    
-    document.getElementById('result-box').innerHTML = html;
+    document.getElementById('score-board').innerText = `Första Klass: ${score1} | Dressinen: ${score2}`;
 }
 
 document.getElementById('next-btn').onclick = () => {
