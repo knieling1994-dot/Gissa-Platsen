@@ -22,17 +22,19 @@ function startTimer() {
     timer = setInterval(() => {
         timeLeft--;
         document.getElementById('timer').innerText = "Tid: " + timeLeft;
-        if (timeLeft <= 5 && timeLeft > 0) playSound(880, 0.1);
         if (timeLeft <= 0) {
             clearInterval(timer);
-            playSound(220, 0.5);
-            processGuess();
+            // HÄR ANROPAS PROCESSGUESS NÄR TIDEN GÅR UT
+            processGuess(); 
         }
     }, 1000);
 }
 
 function processGuess() {
+    // Stoppa timern oavsett hur vi hamnade här
     if (timer) clearInterval(timer);
+    
+    // Om ingen pin är satt blir guess = null, vilket triggar "Misslyckades"
     let guess = tempMarker ? tempMarker.getLatLng() : null;
 
     if (mode === 'solo') {
@@ -51,7 +53,6 @@ function processGuess() {
         showResults();
     }
 }
-
 // --- Gränssnitt ---
 
 function startGame(selectedMode) {
