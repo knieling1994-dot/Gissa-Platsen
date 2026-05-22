@@ -127,4 +127,5 @@ function goToMenu() {
     currentRound = 0;
     roundMarkers.forEach(m => map.removeLayer(m));
     roundMarkers = [];
+    location.reload(); // Enklaste sättet att nollställa allt helt
 }
