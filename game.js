@@ -74,15 +74,16 @@ function processGuess() {
         redGuess = guess;
         if (tempMarker) {
             tempMarker.setIcon(getIcon('green'));
-            roundMarkers.push(tempMarker);
+            roundMarkers.push(tempMarker); // Spara solo-pin
             tempMarker = null;
         }
         showResults();
     } else if (turn === 'Första klass') {
         redGuess = guess;
+        // VI TAR INTE BORT MARKÖREN HÄR, VI SPARAR DEN
         if (tempMarker) {
             tempMarker.setIcon(getIcon('red'));
-            roundMarkers.push(tempMarker);
+            roundMarkers.push(tempMarker); 
             tempMarker = null;
         }
         turn = 'Dressinen';
@@ -90,16 +91,15 @@ function processGuess() {
         loadRound(); 
     } else {
         blueGuess = guess;
+        // VI TAR INTE BORT MARKÖREN HÄR, VI SPARAR DEN
         if (tempMarker) {
             tempMarker.setIcon(getIcon('blue'));
-            roundMarkers.push(tempMarker);
+            roundMarkers.push(tempMarker); 
             tempMarker = null;
         }
         showResults();
     }
 }
-
-document.getElementById('action-btn').onclick = processGuess;
 
 function showResults() {
     document.getElementById('result-box').style.display = 'block';
@@ -107,21 +107,30 @@ function showResults() {
     document.getElementById('next-btn').style.display = 'block';
     
     let q = questions[currentRound];
-    // Visa rätt svar
+    
+    // 1. Visa rätt svar
     let correct = L.marker([q.lat, q.lng], {icon: getIcon('green')}).addTo(map);
     roundMarkers.push(correct);
     
-    let dist1 = redGuess ? map.distance(redGuess, [q.lat, q.lng]) / 1000 : 9999999999999;
-    let dist2 = blueGuess ? map.distance(blueGuess, [q.lat, q.lng]) / 1000 : 9999999999999;
+    // 2. Beräkna avstånd (hantera null om de inte satt någon pin)
+    let dist1 = redGuess ? map.distance(redGuess, [q.lat, q.lng]) / 1000 : null;
+    let dist2 = blueGuess ? map.distance(blueGuess, [q.lat, q.lng]) / 1000 : null;
     
-    function fmt(d) { return d >= 9999999999999 ? "Misslyckades" : Math.round(d) + " km"; }
+    function fmt(d) { return d === null ? "Missade!" : Math.round(d) + " km"; }
 
+    // 3. Uppdatera HTML
     let html = `<strong>${q.name}</strong><br>`;
     if (mode === 'solo') {
         html += `Du var ${fmt(dist1)} ifrån.`;
     } else {
-        if (dist1 < dist2) score1++; else if (dist2 < dist1) score2++;
-        html += `Första Klass: ${fmt(dist1)}<br>Dressinen: ${fmt(dist2)}<br><strong>${(dist1 < dist2) ? "Första Klass vann!" : (dist2 < dist1) ? "Dressinen vann!" : "Oavgjort!"}</strong>`;
+        // Räkna poäng (om båda missat = oavgjort, om en missat = andra vinner)
+        if (dist1 !== null && dist2 === null) score1++;
+        else if (dist2 !== null && dist1 === null) score2++;
+        else if (dist1 < dist2) score1++;
+        else if (dist2 < dist1) score2++;
+        
+        html += `Första Klass: ${fmt(dist1)}<br>Dressinen: ${fmt(dist2)}<br>`;
+        html += `<strong>${(dist1 < dist2) ? "Första Klass vann rundan!" : (dist2 < dist1) ? "Dressinen vann rundan!" : "Oavgjort!"}</strong>`;
         document.getElementById('score-board').innerText = `Första Klass: ${score1} | Dressinen: ${score2}`;
     }
     document.getElementById('result-box').innerHTML = html;
