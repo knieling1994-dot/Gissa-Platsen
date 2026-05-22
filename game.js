@@ -81,29 +81,24 @@ function startTimer() {
 }
 
 function processGuess() {
-    if (timer) clearInterval(timer);
     let guess = tempMarker ? tempMarker.getLatLng() : null;
 
     if (mode === 'solo') {
         redGuess = guess;
-        if (tempMarker) {
-            tempMarker.setIcon(getIcon('green'));
-            roundMarkers.push(tempMarker);
-            tempMarker = null;
-        }
         showResults();
     } else if (turn === 'Första klass') {
         redGuess = guess;
+        // Dölj markören omedelbart när Lag 1 gissat
         if (tempMarker) {
-            tempMarker.setIcon(getIcon('red'));
-            roundMarkers.push(tempMarker);
+            tempMarker.setOpacity(0); // Gör osynlig istället för att ta bort
+            roundMarkers.push(tempMarker); 
             tempMarker = null;
         }
         turn = 'Dressinen';
-        map.setView([50, 10], 3);
-        loadRound();
+        loadRound(); 
     } else {
         blueGuess = guess;
+        // Spara Lag 2 markör
         if (tempMarker) {
             tempMarker.setIcon(getIcon('blue'));
             roundMarkers.push(tempMarker);
@@ -113,41 +108,30 @@ function processGuess() {
     }
 }
 
-document.getElementById('action-btn').onclick = processGuess;
-
-// --- Resultat & Uppföljning ---
-
 function showResults() {
+    // Gör Lag 1-markören synlig igen
+    roundMarkers.forEach(m => m.setOpacity(1));
+    
     document.getElementById('result-box').style.display = 'block';
     document.getElementById('action-btn').style.display = 'none';
     document.getElementById('next-btn').style.display = 'block';
 
     let q = questions[currentRound];
-
-    // Visa rätt svar
-    let correct = L.marker([q.lat, q.lng], { icon: getIcon('green') }).addTo(map);
+    
+    // Visa facit
+    let correct = L.marker([q.lat, q.lng], {icon: getIcon('green')}).addTo(map);
     roundMarkers.push(correct);
 
     let dist1 = redGuess ? map.distance(redGuess, [q.lat, q.lng]) / 1000 : null;
     let dist2 = blueGuess ? map.distance(blueGuess, [q.lat, q.lng]) / 1000 : null;
+    
+    let fmt = (d) => d === null ? "Missat" : Math.round(d) + " km";
 
-    function fmt(d) { return d === null ? "Missade!" : Math.round(d) + " km"; }
-
-    let html = `<strong>${q.name}</strong><br>`;
-    if (mode === 'solo') {
-        html += `Du var ${fmt(dist1)} ifrån.`;
-    } else {
-        if (dist1 !== null && dist2 === null) score1++;
-        else if (dist2 !== null && dist1 === null) score2++;
-        else if (dist1 !== null && dist2 !== null) {
-            if (dist1 < dist2) score1++;
-            else if (dist2 < dist1) score2++;
-        }
-
-        html += `Första Klass: ${fmt(dist1)}<br>Dressinen: ${fmt(dist2)}<br>`;
-        html += `<strong>${(dist1 < dist2) ? "Första Klass vann rundan!" : (dist2 < dist1) ? "Dressinen vann rundan!" : "Oavgjort!"}</strong>`;
-        document.getElementById('score-board').innerText = `Första Klass: ${score1} | Dressinen: ${score2}`;
-    }
+    let html = `<strong>${q.name}</strong><br>
+                Första Klass: ${fmt(dist1)}<br>
+                Dressinen: ${fmt(dist2)}<br>
+                <strong>${(dist1 < dist2) ? "Första Klass vann!" : (dist2 < dist1) ? "Dressinen vann!" : "Oavgjort!"}</strong>`;
+    
     document.getElementById('result-box').innerHTML = html;
 }
 
