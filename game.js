@@ -68,19 +68,6 @@ function startRound() {
 
 // --- Timer & Gissningar ---
 
-function startTimer() {
-    timeLeft = 15;
-    document.getElementById('timer').innerText = "Tid: " + timeLeft;
-    timer = setInterval(() => {
-        timeLeft--;
-        document.getElementById('timer').innerText = "Tid: " + timeLeft;
-        if (timeLeft <= 0) {
-            clearInterval(timer);
-            processGuess();
-        }
-    }, 1000);
-}
-
 function processGuess() {
     if (timer) clearInterval(timer);
     let guess = tempMarker ? tempMarker.getLatLng() : null;
