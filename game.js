@@ -110,3 +110,21 @@ function nextRound() {
 };
 
 function getIcon(c) { return L.icon({ iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${c}.png`, iconSize: [25, 41] }); }
+
+function goToMenu() {
+    // 1. Dölj alla skärmar
+    document.getElementById('game-area').style.display = 'none';
+    document.getElementById('win-screen').style.display = 'none';
+    document.getElementById('turn-screen').style.display = 'none';
+    document.getElementById('video-screen').style.display = 'none';
+    
+    // 2. Visa menyn
+    document.getElementById('menu').style.display = 'flex';
+    
+    // 3. Återställ variabler
+    score1 = 0;
+    score2 = 0;
+    currentRound = 0;
+    roundMarkers.forEach(m => map.removeLayer(m));
+    roundMarkers = [];
+}
