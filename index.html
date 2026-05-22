@@ -3,189 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Närmast Platsen Vinner - Spelet</title>
+    <title>Närmast Platsen Vinner</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <style>
-        /* Comic-Book Inspired Theme (Matches image_1.png) */
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-        
-        body { 
-            font-family: 'Segoe UI', 'Impact', 'Arial Black', sans-serif; 
-            text-align: center; 
-            background-color: #2c3e50;
-            color: #ecf0f1; 
-            overflow: hidden; /* Lock the screen to avoid scrolling on mobile */
-            height: 100vh;
-        }
-
-        /* Responsive UI Containers */
+        body { font-family: 'Impact', sans-serif; text-align: center; margin: 0; background: #2c3e50; color: #ecf0f1; overflow-x: hidden; }
         #menu, #win-screen, #turn-screen, #video-screen, #game-area { 
-            position: fixed; top:0; left:0; width:100%; height:100%; 
-            display:flex; flex-direction:column; justify-content:center; align-items:center; 
-            padding: 10px;
+            position: fixed; top:0; left:0; width:100%; height:100%; background:#2c3e50; 
+            z-index:9999; display:flex; flex-direction:column; justify-content:center; align-items:center; padding: 10px;
         }
-
-        /* --- THE NEW COMIC MAIN MENU (Style matched to image_1.png) --- */
-        #menu {
-            background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://www.transparenttextures.com/patterns/pinstripe-up.png'), #34495e;
-        }
-
-        /* Main Menu Header Text (Style matched) */
-        h1.comic-title {
-            color: #f1c40f; /* Matched Yellow */
-            font-size: 8vw; /* Large and responsive */
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: -3px;
-            text-shadow: 
-                -4px -4px 0 #000, 
-                4px -4px 0 #000,
-                -4px 4px 0 #000,
-                4px 4px 0 #000,
-                0px 6px 15px rgba(230, 126, 34, 0.7); /* Orange glow */
-            line-height: 1.0;
-            margin-bottom: 20px;
-            position: relative;
-            transform: skewX(-5deg); /* Match the comic book feel */
-        }
-
-        /* Responsive sizing for the main title on mobile */
-        @media (max-width: 600px) {
-            h1.comic-title { font-size: 14vw; }
-        }
-
-        /* Button Styling (Style matched) */
-        .comic-btn { 
-            padding: 12px 25px; 
-            font-size: 24px; 
-            font-weight: bold;
-            cursor: pointer; 
-            border-radius: 4px; 
-            border: 3px solid #000;
-            background: #e67e22; 
-            color: white; 
-            transition: 0.2s; 
-            margin: 10px;
-            text-transform: uppercase;
-            box-shadow: 4px 4px 0 rgba(0,0,0,0.5);
-            width: 80%; /* Almost full width for easy touching on mobile */
-            max-width: 400px; /* But don't let it get huge */
-        }
-        .comic-btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 rgba(0,0,0,0.5); }
-        .comic-btn:hover { background: #d35400; }
-
-        /* Game Credits (Style matched) */
-        #menu p.credits { 
-            font-size: 12px; 
-            color: rgba(236, 240, 241, 0.7); 
-            margin-top: 15px; 
-        }
-
-        /* --- END MENU SECTION --- */
-
-        /* General Game UI elements (Responsive fixes) */
-        #game-area { display: none; flex-direction: column; }
+        #game-area { display: none; overflow-y: auto; }
         
-        #map { 
-            height: 50% !important; 
-            width: 100% !important; 
-            flex-grow: 1; /* Make the map fill the remaining vertical space */
-            margin: 10px 0; 
-            border: 5px solid #e67e22; 
-            border-radius: 10px; 
-            cursor: crosshair; 
-        }
+        .comic-title { color: #f1c40f; font-size: 10vw; text-transform: uppercase; text-shadow: 4px 4px 0 #000; transform: skewX(-5deg); margin-bottom: 20px; }
+        .comic-btn { padding: 15px 30px; font-size: 20px; border: 3px solid #000; background: #e67e22; color: white; margin: 10px; cursor: pointer; box-shadow: 4px 4px 0 rgba(0,0,0,0.5); text-transform: uppercase; }
+        
+        .game-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; width: 100%; max-width: 800px; margin-bottom: 10px; }
+        #game-image { flex: 1 1 300px; max-width: 100%; height: 200px; object-fit: cover; border: 5px solid #ecf0f1; border-radius: 10px; }
+        #result-box { flex: 1 1 300px; display: none; padding: 15px; background: #34495e; border-left: 5px solid #e67e22; border-radius: 5px; text-align: left; }
+        
+        #map { height: 300px !important; width: 100% !important; max-width: 800px; border: 5px solid #e67e22; border-radius: 10px; }
+        #timer { font-size: 2.5em; color: #e74c3c; margin: 5px; }
 
-        #timer { font-size: 2.5em; color: #e74c3c; font-weight: bold; margin: 5px; text-shadow: 2px 2px #000; }
-
-        /* Match the responsive image size to image_1.png's style */
-        #game-image { 
-            max-width: 100%; 
-            height: auto;
-            max-height: 35vh; /* Keep the image size contained on mobile */
-            border: 5px solid #ecf0f1; 
-            border-radius: 10px;
-            object-fit: contain; /* Ensure the image content is seen */
-        }
-
-        /* Result and Winner Boxes (Responsive style) */
-        #result-box { 
-            display:none; 
-            margin: 10px auto; 
-            padding: 15px; 
-            background: #34495e; 
-            width: 100%; 
-            max-width: 90%;
-            border-left: 5px solid #e67e22; 
-            border-radius: 5px; 
-            font-size: 18px;
-        }
-
-        /* Final Winner text (Style matched) */
-        #win-text { 
-            color: #f1c40f; 
-            text-transform: uppercase;
-            font-size: 12vw;
-            margin-bottom: 20px;
-        }
-
-        /* Full-screen Intro Video */
         #video-screen { background: black; }
-        #video-screen video {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            object-fit: cover;
-            z-index: 10000;
-        }
-        #video-screen button {
-            position: absolute; bottom: 30px; right: 30px;
-            z-index: 10001;
-            background: rgba(230, 126, 34, 0.8);
-        }
-        
-        /* Layout fix for mobile during gameplay to make everything fit */
-        #score-board { font-size: 1.2em; font-weight: bold; margin-bottom: 5px; }
-
+        #video-screen video { width: 100%; height: 100%; object-fit: cover; }
     </style>
 </head>
 <body>
 
 <div id="menu">
     <h1 class="comic-title">Närmast<br>Platsen<br>Vinner</h1>
-    <button class="comic-btn" onclick="startGame('lag')">Spela i lag</button>
-    <button class="comic-btn" onclick="startGame('solo')">Spela solo</button>
-    <p class="credits">&copy; [Spelutvecklare Namn] 2024</p>
+    <button class="comic-btn" onclick="startGame('lag')">Första Klass mot Dressinen</button>
+    <button class="comic-btn" onclick="startGame('solo')">Spela Solo</button>
 </div>
 
 <div id="video-screen" style="display:none;">
-    <video id="intro-video" controls autoplay muted>
+    <video id="intro-video" autoplay muted>
         <source src="intro.mp4" type="video/mp4">
-        Din webbläsare stödjer inte video.
     </video>
-    <button class="comic-btn" onclick="finishVideo()">Hoppa över</button>
+    <button class="comic-btn" style="position:absolute; bottom:20px;" onclick="finishVideo()">Hoppa över</button>
 </div>
 
 <div id="turn-screen" style="display:none;">
-    <h1 id="turn-text" class="comic-title">Redo!</h1>
+    <h1 id="turn-text" class="comic-title">Redo?</h1>
     <button class="comic-btn" onclick="startRound()">Nu Reser Vi!</button>
 </div>
 
 <div id="game-area">
-    <div id="score-board"></div>
-    <div id="timer">Tid: 15</div>
-    <img id="game-image" src="" alt="Resans Destination">
+    <div id="score-board" style="font-size:1.5em; font-weight:bold;"></div>
+    <div id="timer"></div>
+    <div class="game-container">
+        <img id="game-image" src="" alt="Destination">
+        <div id="result-box"></div>
+    </div>
     <div id="map"></div>
     <button id="action-btn" class="comic-btn">Lås Gissning 📍</button>
     <button id="next-btn" class="comic-btn" style="display:none;">Nästa Mål ➡️</button>
-    <div id="result-box"></div>
 </div>
 
 <div id="win-screen" style="display:none;">
-    <h1 id="win-text" class="comic-title">Seier!</h1>
-    <button class="comic-btn" onclick="location.reload()">Nytt Äventyr!</button>
+    <h1 id="win-text" class="comic-title">Vinst!</h1>
+    <button class="comic-btn" onclick="location.reload()">Nytt Äventyr</button>
 </div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
