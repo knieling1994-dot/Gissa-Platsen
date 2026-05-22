@@ -104,7 +104,7 @@ function nextRound() {
     document.getElementById('result-box').style.display = 'none';
     document.getElementById('next-btn').style.display = 'none';
     document.getElementById('action-btn').style.display = 'inline-block';
-    map.setView([20, 0], 2); 
+    map.setView([19, 0], 2); 
     
     loadRound();
 };
