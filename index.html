@@ -21,14 +21,17 @@
         .comic-title { color: #f1c40f; font-size: 8vh; text-transform: uppercase; text-shadow: 4px 4px 0 #000; transform: skewX(-5deg); margin-bottom: 20px; }
         .comic-btn { padding: 15px; font-size: 18px; border: 3px solid #000; background: #e67e22; color: white; margin: 5px; cursor: pointer; box-shadow: 4px 4px 0 rgba(0,0,0,0.5); text-transform: uppercase; width: 90%; max-width: 300px; }
         
-        /* Layout för bild och statistik */
-        .header-container { display: flex; align-items: center; justify-content: center; gap: 15px; width: 100%; margin-bottom: 10px; }
-        #game-image { height: 100px; width: 150px; border: 3px solid white; object-fit: cover; }
+        /* Layout för bild och statistik (Flyttad upp) */
+        .header-container { display: flex; align-items: center; justify-content: center; gap: 15px; width: 100%; margin-bottom: 10px; flex-shrink: 0; }
+        #game-image { height: 120px; width: 180px; border: 3px solid white; object-fit: cover; }
         #score-stats { font-size: 1.1em; text-align: left; }
         #timer { font-size: 2em; color: #e74c3c; margin: 5px; }
         
-        #map { flex-grow: 1; width: 100%; border: 3px solid #e67e22; border-radius: 5px; }
-        #result-box { display: none; padding: 10px; background: #34495e; border-left: 5px solid #e67e22; margin-top: 10px; font-size: 14px; }
+        /* Kartan tar upp resten av utrymmet */
+        #map { flex-grow: 1; width: 100%; border: 3px solid #e67e22; border-radius: 5px; min-height: 200px; }
+        
+        /* Resultatruta som nu ligger i samma flöde */
+        #result-box { display: none; padding: 10px; background: #34495e; border-left: 5px solid #e67e22; margin-top: 5px; font-size: 14px; width: 100%; }
         
         #video-screen { background: black; }
         #video-screen video { width: 100%; height: 100%; object-fit: cover; }
@@ -43,7 +46,7 @@
 </div>
 
 <div id="video-screen" style="display:none;">
-    <video id="intro-video" autoplay>
+    <video id="intro-video" autoplay muted playsinline>
         <source src="intro.mp4" type="video/mp4">
     </video>
     <button class="comic-btn" style="position:absolute; bottom:20px;" onclick="finishVideo()">Hoppa över</button>
@@ -62,7 +65,9 @@
             <div id="timer"></div>
         </div>
     </div>
+    
     <div id="map"></div>
+    
     <div id="result-box"></div>
     <button id="action-btn" class="comic-btn">Lås Gissning 📍</button>
     <button id="next-btn" class="comic-btn" style="display:none;">Nästa Mål ➡️</button>
