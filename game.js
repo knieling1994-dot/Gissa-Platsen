@@ -56,7 +56,7 @@ function startRound() {
     document.getElementById('turn-screen').style.display = 'none';
     document.getElementById('game-area').style.display = 'flex';
     let q = questions[currentRound];
-    document.getElementById('game-image').src = `https://loremflickr.com/400/250/${encodeURIComponent(q.name)}`;
+    document.getElementById('game-image').src = `https://www.google.com/search?q=${encodeURIComponent(q.name)}&tbm=isch`;
     if (!map) {
         map = L.map('map', { minZoom: 2 }).setView([20, 0], 2);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
