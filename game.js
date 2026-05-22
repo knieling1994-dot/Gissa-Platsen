@@ -63,8 +63,7 @@ function startRound() {
     let q = questions[currentRound];
     
     // Uppdaterad bildhämtning för bättre kompatibilitet
-    let img = document.getElementById('game-image');
-    if (img) img.src = `https://loremflickr.com/400/250/${encodeURIComponent(q.name)}?lock=${currentRound}`;
+    document.getElementById('game-image').src = `https://en.wikipedia.org/wiki/Special:FilePath/${encodeURIComponent(q.name.replace(/ /g, '_'))}.jpg`;
     
     if (!map) {
         map = L.map('map', { minZoom: 2 }).setView([20, 0], 2);
