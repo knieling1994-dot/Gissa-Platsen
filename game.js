@@ -1,4 +1,13 @@
-let mode, turn = 'Första klass', score1 = 0, score2 = 0, currentRound = 0;
+let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playSound(freq, duration) {
+    let osc = audioCtx.createOscillator();
+    osc.frequency.value = freq;
+    osc.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + duration);
+}
+
+let mode, turn = 'Första klass', score1 = 0, score2 = 0, currentRound = 0, timer = null, timeLeft;
 let redGuess, blueGuess, tempMarker, roundMarkers = [], map;
 
 const allQuestions = [
@@ -13,10 +22,46 @@ const allQuestions = [
 ];
 let questions = [];
 
+function startTimer() {
+    if (timer) clearInterval(timer);
+    timeLeft = 15;
+    document.getElementById('timer').innerText = "Tid: " + timeLeft;
+    timer = setInterval(() => {
+        timeLeft--;
+        document.getElementById('timer').innerText = "Tid: " + timeLeft;
+        if (timeLeft <= 5 && timeLeft > 0) playSound(880, 0.1);
+        if (timeLeft <= 0) {
+            clearInterval(timer);
+            playSound(220, 0.5);
+            // Om tiden är ute, kör gissnings-funktionen (utan pin om ingen finns)
+            processGuess();
+        }
+    }, 1000);
+}
+
+function processGuess() {
+    // Om ingen markör är satt, sätt gissningen till null
+    let guess = tempMarker ? tempMarker.getLatLng() : null;
+
+    if (turn === 'Första klass') {
+        redGuess = guess;
+        if (tempMarker) map.removeLayer(tempMarker); tempMarker = null;
+        turn = 'Dressinen';
+        map.setView([50, 10], 3);
+        loadRound(); 
+    } else {
+        blueGuess = guess;
+        if (tempMarker) map.removeLayer(tempMarker); tempMarker = null;
+        showResults();
+    }
+}
+
 function startGame(selectedMode) {
     mode = selectedMode;
     document.getElementById('menu').style.display = 'none';
     questions = [...allQuestions].sort(() => Math.random() - 0.5);
+    // Om man spelar solo döper vi om turen till "Du"
+    turn = (mode === 'solo') ? 'Du' : 'Första klass';
     loadRound();
 }
 
@@ -24,7 +69,7 @@ function loadRound() {
     if (tempMarker) { map.removeLayer(tempMarker); tempMarker = null; }
     document.getElementById('game-area').style.display = 'none';
     document.getElementById('turn-screen').style.display = 'flex';
-    document.getElementById('turn-text').innerText = turn + ", förbered er!";
+    document.getElementById('turn-text').innerText = (mode === 'solo') ? "Redo för gissning?" : turn + ", förbered er!";
 }
 
 function startRound() {
@@ -36,12 +81,11 @@ function startRound() {
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
         map.on('click', (e) => {
             if (tempMarker) map.removeLayer(tempMarker);
-            tempMarker = L.marker(e.latlng, {icon: getIcon(turn === 'Första klass' ? 'red' : 'blue')}).addTo(map);
+            tempMarker = L.marker(e.latlng, {icon: getIcon(mode === 'solo' ? 'green' : (turn === 'Första klass' ? 'red' : 'blue'))}).addTo(map);
         });
     } else {
         map.invalidateSize();
     }
-    
     document.getElementById('game-image').src = questions[currentRound].url;
 }
 
@@ -50,13 +94,19 @@ function getIcon(color) {
 }
 
 document.getElementById('action-btn').onclick = function() {
-    if (!tempMarker) { alert("Ni måste placera en markör!"); return; }
+    if (timer) clearInterval(timer);
+    processGuess();
+};
 
-    if (turn === 'Första klass') {
+    if (mode === 'solo') {
+        redGuess = tempMarker.getLatLng(); // Vi använder redGuess för solo
+        map.removeLayer(tempMarker); tempMarker = null;
+        showResults();
+    } else if (turn === 'Första klass') {
         redGuess = tempMarker.getLatLng();
         map.removeLayer(tempMarker); tempMarker = null;
         turn = 'Dressinen';
-        map.setView([50, 10], 3); // Återställ karta till startvy för nästa lag
+        map.setView([50, 10], 3);
         loadRound(); 
     } else {
         blueGuess = tempMarker.getLatLng();
@@ -67,47 +117,46 @@ document.getElementById('action-btn').onclick = function() {
 
 function showResults() {
     let q = questions[currentRound];
-    let distRaw1 = map.distance(redGuess, [q.lat, q.lng]) / 1000;
-    let distRaw2 = map.distance(blueGuess, [q.lat, q.lng]) / 1000;
+    let resultHTML = `<strong>${q.name}</strong><br>`;
+    
+    if (mode === 'solo') {
+        let dist = map.distance(redGuess, [q.lat, q.lng]) / 1000;
+        resultHTML += `Du var ${dist < 10 ? dist.toFixed(1) : Math.round(dist)} km ifrån.`;
+        roundMarkers.push(L.marker([q.lat, q.lng], {icon: getIcon('green')}).addTo(map));
+        roundMarkers.push(L.marker(redGuess, {icon: getIcon('green')}).addTo(map));
+    } else {
+        let dist1 = map.distance(redGuess, [q.lat, q.lng]) / 1000;
+        let dist2 = map.distance(blueGuess, [q.lat, q.lng]) / 1000;
+        if (dist1 < dist2) score1++; else if (dist2 < dist1) score2++;
+        resultHTML += `Första klass: ${dist1.toFixed(0)} km | Dressinen: ${dist2.toFixed(0)} km<br><strong>${(dist1 < dist2) ? "Första klass vinner!" : "Dressinen vinner!"}</strong>`;
+        roundMarkers.push(L.marker([q.lat, q.lng], {icon: getIcon('green')}).addTo(map));
+        roundMarkers.push(L.marker(redGuess, {icon: getIcon('red')}).addTo(map));
+        roundMarkers.push(L.marker(blueGuess, {icon: getIcon('blue')}).addTo(map));
+        document.getElementById('score-board').innerText = `Första klass: ${score1} | Dressinen: ${score2}`;
+        let q = questions[currentRound];
+    
+    // Hantera missade gissningar (null = 9999999999999km)
+    let distRaw1 = redGuess ? map.distance(redGuess, [q.lat, q.lng]) / 1000 : 9999999999999;
+    let distRaw2 = blueGuess ? map.distance(blueGuess, [q.lat, q.lng]) / 1000 : 9999999999999;
 
-    function formatDist(d) { return d < 10 ? d.toFixed(1) : Math.round(d); }
+    function formatDist(d) { 
+        if (d >= 9999999999999) return "Misslyckades";
+        return d < 10 ? d.toFixed(1) : Math.round(d); 
+    }
 
     if (distRaw1 < distRaw2) score1++; 
     else if (distRaw2 < distRaw1) score2++;
-    
-    document.getElementById('score-board').innerText = `Första klass: ${score1} | Dressinen: ${score2}`;
-    document.getElementById('result-box').style.display = 'block';
-    
-    let winnerText = (distRaw1 < distRaw2) ? "Första klass vinner rundan!" : (distRaw2 < distRaw1 ? "Dressinen vinner rundan!" : "Oavgjort!");
-
-    document.getElementById('result-box').innerHTML = `<strong>${q.name}</strong><br>Första klass: ${formatDist(distRaw1)} km | Dressinen: ${formatDist(distRaw2)} km<br><strong>${winnerText}</strong>`;
-    
-    // Visa markörer
-    roundMarkers.push(L.marker([q.lat, q.lng], {icon: getIcon('green')}).addTo(map));
-    roundMarkers.push(L.marker(redGuess, {icon: getIcon('red')}).addTo(map));
-    roundMarkers.push(L.marker(blueGuess, {icon: getIcon('blue')}).addTo(map));
-
-    // ÄNDRING HÄR: 
-    // Vi döljer inte action-knappen direkt om matchen är slut, 
-    // vi låter användaren se statistiken och visa vinstskärmen via en ny knapp
-    document.getElementById('action-btn').style.display = 'none';
-    
-    if (score1 >= 3 || score2 >= 3) {
-        // Skapa en knapp för att gå vidare till vinstskärmen
-        let finishBtn = document.createElement("button");
-        finishBtn.innerText = "Se slutresultat";
-        finishBtn.onclick = () => {
-            document.getElementById('win-screen').style.display = 'flex';
-            document.getElementById('win-text').innerText = (score1 >= 3 ? "Första klass" : "Dressinen") + " vann matchen!";
-        };
-        document.getElementById('result-box').appendChild(finishBtn);
-    } else {
-        document.getElementById('next-btn').style.display = 'inline-block';
     }
+
+    document.getElementById('result-box').innerHTML = resultHTML;
+    document.getElementById('result-box').style.display = 'block';
+    document.getElementById('action-btn').style.display = 'none';
+    document.getElementById('next-btn').style.display = 'inline-block';
 }
 
 document.getElementById('next-btn').onclick = () => {
-    currentRound++; turn = 'Första klass';
+    currentRound++; 
+    turn = 'Första klass';
     roundMarkers.forEach(m => map.removeLayer(m));
     document.getElementById('result-box').style.display = 'none';
     document.getElementById('next-btn').style.display = 'none';
