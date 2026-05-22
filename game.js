@@ -60,6 +60,20 @@ function startGame(selectedMode) {
     document.getElementById('menu').style.display = 'none';
     questions = [...allQuestions].sort(() => Math.random() - 0.5);
     turn = (mode === 'solo') ? 'Du' : 'Första klass';
+
+    if (mode === 'lag') {
+        // Visa videoskärmen
+        document.getElementById('video-screen').style.display = 'flex';
+        let vid = document.getElementById('intro-video');
+        vid.play();
+        vid.onended = () => finishVideo();
+    } else {
+        loadRound();
+    }
+}
+
+function finishVideo() {
+    document.getElementById('video-screen').style.display = 'none';
     loadRound();
 }
 
