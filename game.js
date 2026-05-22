@@ -81,24 +81,30 @@ function startTimer() {
 }
 
 function processGuess() {
+    if (timer) clearInterval(timer);
     let guess = tempMarker ? tempMarker.getLatLng() : null;
-
+    
     if (mode === 'solo') {
         redGuess = guess;
+        if (tempMarker) {
+            tempMarker.setIcon(getIcon('green'));
+            roundMarkers.push(tempMarker);
+            tempMarker = null;
+        }
         showResults();
     } else if (turn === 'Första klass') {
         redGuess = guess;
-        // Dölj markören omedelbart när Lag 1 gissat
         if (tempMarker) {
-            tempMarker.setOpacity(0); // Gör osynlig istället för att ta bort
-            roundMarkers.push(tempMarker); 
+            tempMarker.setIcon(getIcon('red'));
+            tempMarker.setOpacity(0); // Dölj Lag 1:s pin
+            roundMarkers.push(tempMarker);
             tempMarker = null;
         }
         turn = 'Dressinen';
+        map.setView([50, 10], 3);
         loadRound(); 
     } else {
         blueGuess = guess;
-        // Spara Lag 2 markör
         if (tempMarker) {
             tempMarker.setIcon(getIcon('blue'));
             roundMarkers.push(tempMarker);
@@ -106,6 +112,34 @@ function processGuess() {
         }
         showResults();
     }
+}
+
+function showResults() {
+    // Visa alla pins igen
+    roundMarkers.forEach(m => m.setOpacity(1));
+    
+    document.getElementById('result-box').style.display = 'block';
+    document.getElementById('action-btn').style.display = 'none';
+    document.getElementById('next-btn').style.display = 'block';
+    
+    let q = questions[currentRound];
+    let correct = L.marker([q.lat, q.lng], {icon: getIcon('green')}).addTo(map);
+    roundMarkers.push(correct);
+    
+    let dist1 = redGuess ? map.distance(redGuess, [q.lat, q.lng]) / 1000 : null;
+    let dist2 = blueGuess ? map.distance(blueGuess, [q.lat, q.lng]) / 1000 : null;
+    
+    let fmt = (d) => d === null ? "Missat" : Math.round(d) + " km";
+    
+    // Använd samma stil som statistiken för att få skarp text
+    let html = `<div style="font-family: Impact, sans-serif; font-size: 1.2em;">
+                <strong>${q.name}</strong><br>
+                Första Klass: ${fmt(dist1)}<br>
+                Dressinen: ${fmt(dist2)}<br>
+                <strong style="color: #f1c40f;">${(dist1 < dist2) ? "Första Klass vann rundan!" : (dist2 < dist1) ? "Dressinen vann rundan!" : "Oavgjort!"}</strong>
+                </div>`;
+    
+    document.getElementById('result-box').innerHTML = html;
 }
 
 function showResults() {
