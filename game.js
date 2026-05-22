@@ -13,30 +13,63 @@ const allQuestions = [
 ];
 let questions = [];
 
-// --- Timer & Logik ---
+function startGame(selectedMode) {
+    mode = selectedMode;
+    document.getElementById('menu').style.display = 'none';
+    questions = [...allQuestions].sort(() => Math.random() - 0.5);
+    turn = (mode === 'solo') ? 'Du' : 'Första klass';
+    
+    if (mode === 'lag') {
+        document.getElementById('video-screen').style.display = 'flex';
+        document.getElementById('intro-video').onended = finishVideo;
+    } else {
+        loadRound();
+    }
+}
+
+function finishVideo() {
+    document.getElementById('video-screen').style.display = 'none';
+    loadRound();
+}
+
+function loadRound() {
+    if (tempMarker) { map.removeLayer(tempMarker); tempMarker = null; }
+    document.getElementById('game-area').style.display = 'none';
+    document.getElementById('turn-screen').style.display = 'flex';
+    document.getElementById('turn-text').innerText = (mode === 'solo') ? "Redo för gissning?" : turn + ", dags att resa!";
+}
+
+function startRound() {
+    document.getElementById('turn-screen').style.display = 'none';
+    document.getElementById('game-area').style.display = 'flex';
+    
+    if (!map) {
+        map = L.map('map', {minZoom: 2}).setView([50, 10], 3);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        map.on('click', (e) => {
+            if (tempMarker) map.removeLayer(tempMarker);
+            tempMarker = L.marker(e.latlng, {icon: getIcon(mode === 'solo' ? 'green' : (turn === 'Första klass' ? 'red' : 'blue'))}).addTo(map);
+        });
+    } else { map.invalidateSize(); }
+    
+    document.getElementById('game-image').src = questions[currentRound].url;
+    if (mode === 'lag') startTimer();
+}
 
 function startTimer() {
-    if (timer) clearInterval(timer);
     timeLeft = 15;
     document.getElementById('timer').innerText = "Tid: " + timeLeft;
     timer = setInterval(() => {
         timeLeft--;
         document.getElementById('timer').innerText = "Tid: " + timeLeft;
-        if (timeLeft <= 0) {
-            clearInterval(timer);
-            // HÄR ANROPAS PROCESSGUESS NÄR TIDEN GÅR UT
-            processGuess(); 
-        }
+        if (timeLeft <= 0) { clearInterval(timer); processGuess(); }
     }, 1000);
 }
 
 function processGuess() {
-    // Stoppa timern oavsett hur vi hamnade här
     if (timer) clearInterval(timer);
-    
-    // Om ingen pin är satt blir guess = null, vilket triggar "Misslyckades"
     let guess = tempMarker ? tempMarker.getLatLng() : null;
-
+    
     if (mode === 'solo') {
         redGuess = guess;
         if (tempMarker) map.removeLayer(tempMarker); tempMarker = null;
@@ -53,91 +86,38 @@ function processGuess() {
         showResults();
     }
 }
-// --- Gränssnitt ---
-
-function startGame(selectedMode) {
-    mode = selectedMode;
-    document.getElementById('menu').style.display = 'none';
-    questions = [...allQuestions].sort(() => Math.random() - 0.5);
-    turn = (mode === 'solo') ? 'Du' : 'Första klass';
-
-    if (mode === 'lag') {
-        // Visa videoskärmen
-        document.getElementById('video-screen').style.display = 'flex';
-        let vid = document.getElementById('intro-video');
-        vid.play();
-        vid.onended = () => finishVideo();
-    } else {
-        loadRound();
-    }
-}
-
-function finishVideo() {
-    document.getElementById('video-screen').style.display = 'none';
-    loadRound();
-}
-
-function loadRound() {
-    if (tempMarker) { map.removeLayer(tempMarker); tempMarker = null; }
-    document.getElementById('game-area').style.display = 'none';
-    document.getElementById('turn-screen').style.display = 'flex';
-    document.getElementById('turn-text').innerText = (mode === 'solo') ? "Redo för gissning?" : turn + ", förbered er!";
-}
-
-function startRound() {
-    document.getElementById('turn-screen').style.display = 'none';
-    document.getElementById('game-area').style.display = 'block';
-    if (!map) {
-        map = L.map('map', {minZoom: 2}).setView([50, 10], 3);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-        map.on('click', (e) => {
-            if (tempMarker) map.removeLayer(tempMarker);
-            tempMarker = L.marker(e.latlng, {icon: getIcon(mode === 'solo' ? 'green' : (turn === 'Första klass' ? 'red' : 'blue'))}).addTo(map);
-        });
-    } else { map.invalidateSize(); }
-    document.getElementById('game-image').src = questions[currentRound].url;
-    if (mode === 'lag') startTimer();
-}
-
-function getIcon(color) {
-    return L.icon({ iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${color}.png`, iconSize: [25, 41] });
-}
 
 document.getElementById('action-btn').onclick = processGuess;
 
 function showResults() {
-    let q = questions[currentRound];
-    let distRaw1 = redGuess ? map.distance(redGuess, [q.lat, q.lng]) / 1000 : 9999999999999;
-    let distRaw2 = blueGuess ? map.distance(blueGuess, [q.lat, q.lng]) / 1000 : 9999999999999;
-
-    function formatDist(d) { 
-        return d >= 9999999999999 ? "Misslyckades" : (d < 10 ? d.toFixed(1) + " km" : Math.round(d) + " km"); 
-    }
-
     document.getElementById('result-box').style.display = 'block';
     document.getElementById('action-btn').style.display = 'none';
     document.getElementById('next-btn').style.display = 'inline-block';
+    
+    let q = questions[currentRound];
+    let dist1 = redGuess ? map.distance(redGuess, [q.lat, q.lng]) / 1000 : 9999999999999;
+    let dist2 = blueGuess ? map.distance(blueGuess, [q.lat, q.lng]) / 1000 : 9999999999999;
+    
+    function fmt(d) { return d >= 9999999999999 ? "Misslyckades" : Math.round(d) + " km"; }
 
+    let html = `<strong>${q.name}</strong><br>`;
     if (mode === 'solo') {
-        document.getElementById('result-box').innerHTML = `<strong>${q.name}</strong><br>Du var ${formatDist(distRaw1)} ifrån.`;
-        roundMarkers.push(L.marker([q.lat, q.lng], {icon: getIcon('green')}).addTo(map));
-        roundMarkers.push(L.marker(redGuess, {icon: getIcon('green')}).addTo(map));
+        html += `Du var ${fmt(dist1)} ifrån.`;
     } else {
-        if (distRaw1 < distRaw2) score1++; else if (distRaw2 < distRaw1) score2++;
-        document.getElementById('score-board').innerText = `Första klass: ${score1} | Dressinen: ${score2}`;
-        document.getElementById('result-box').innerHTML = `<strong>${q.name}</strong><br>Första klass: ${formatDist(distRaw1)}<br>Dressinen: ${formatDist(distRaw2)}<br><strong>${(distRaw1 < distRaw2) ? "Första klass vinner!" : (distRaw2 < distRaw1) ? "Dressinen vinner!" : "Oavgjort!"}</strong>`;
-        roundMarkers.push(L.marker([q.lat, q.lng], {icon: getIcon('green')}).addTo(map));
-        roundMarkers.push(L.marker(redGuess, {icon: getIcon('red')}).addTo(map));
-        roundMarkers.push(L.marker(blueGuess, {icon: getIcon('blue')}).addTo(map));
+        if (dist1 < dist2) score1++; else if (dist2 < dist1) score2++;
+        html += `Första Klass: ${fmt(dist1)}<br>Dressinen: ${fmt(dist2)}<br><strong>${(dist1 < dist2) ? "Första Klass vann!" : (dist2 < dist1) ? "Dressinen vann!" : "Oavgjort!"}</strong>`;
+        document.getElementById('score-board').innerText = `Första Klass: ${score1} | Dressinen: ${score2}`;
     }
+    document.getElementById('result-box').innerHTML = html;
 }
 
 document.getElementById('next-btn').onclick = () => {
     currentRound++; turn = 'Första klass';
-    roundMarkers.forEach(m => map.removeLayer(m));
     document.getElementById('result-box').style.display = 'none';
     document.getElementById('next-btn').style.display = 'none';
     document.getElementById('action-btn').style.display = 'inline-block';
     map.setView([50, 10], 3);
     loadRound();
 };
+
+function getIcon(c) { return L.icon({ iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${c}.png`, iconSize: [25, 41] }); }
