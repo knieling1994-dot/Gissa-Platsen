@@ -2,43 +2,53 @@
 <html lang="sv">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gissa Platsen</title>
+    <title>Resekollen - Gissa Platsen</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <style>
-        body { font-family: sans-serif; text-align: center; margin: 0; background: #222; color: white; }
-        #menu, #win-screen, #turn-screen { position: fixed; top:0; left:0; width:100%; height:100%; background:#222; z-index:9999; display:flex; flex-direction:column; justify-content:center; align-items:center; }
-        #game-area { display: none; padding: 10px; }
-        #map { height: 400px !important; width: 100% !important; display: block !important; margin: 10px 0; border: 2px solid white; cursor: crosshair; }
-        #result-box { display:none; margin: 10px; padding: 10px; background: #444; font-size: 1.2em; border-radius: 8px; }
-        button { padding: 15px 25px; font-size: 18px; cursor: pointer; border-radius: 5px; border: none; background: #fff; margin: 5px; }
+        /* Resetema-stil */
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            text-align: center; 
+            margin: 0; 
+            background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://www.transparenttextures.com/patterns/world-map.png'), #2c3e50;
+            color: #ecf0f1; 
+        }
+        #menu, #win-screen, #turn-screen { position: fixed; top:0; left:0; width:100%; height:100%; background:#2c3e50; z-index:9999; display:flex; flex-direction:column; justify-content:center; align-items:center; }
+        #game-area { display: none; padding: 20px; }
+        #map { height: 400px !important; width: 90% !important; margin: 20px auto; border: 5px solid #e67e22; border-radius: 10px; cursor: crosshair; }
+        #timer { font-size: 3em; color: #e74c3c; font-weight: bold; margin: 10px; text-shadow: 2px 2px #000; }
+        button { padding: 15px 30px; font-size: 20px; cursor: pointer; border-radius: 30px; border: none; background: #e67e22; color: white; transition: 0.3s; margin: 10px; }
+        button:hover { background: #d35400; transform: scale(1.1); }
+        #result-box { display:none; margin: 20px auto; padding: 20px; background: #34495e; width: 80%; border-left: 5px solid #e67e22; }
     </style>
 </head>
 <body>
 
 <div id="menu">
-    <h1>Gissa Platsen</h1>
-    <button onclick="startGame('lag')">Tävla i lag (Första klass vs Dressinen)</button><br><br>
-    <button onclick="startGame('solo')">Öva själv</button>
+    <h1>✈️ Resekollen 🌍</h1>
+    <p>Hur väl känner du världen?</p>
+    <button onclick="startGame('lag')">Tävla i lag (Tåg vs Flyg)</button>
+    <button onclick="startGame('solo')">Spela solo</button>
 </div>
 
 <div id="turn-screen" style="display:none;">
     <h1 id="turn-text"></h1>
-    <button onclick="startRound()">Starta tur!</button>
+    <button onclick="startRound()">Redo att resa!</button>
 </div>
 
 <div id="game-area">
-    <div id="score-board" style="font-size:1.4em; font-weight:bold;">Första klass: 0 | Dressinen: 0</div>
-    <img id="game-image" src="" style="max-width:90%; height:250px; border:3px solid white; margin-top:10px;">
+    <div id="score-board" style="font-size:1.5em; font-weight:bold; margin-bottom:10px;"></div>
+    <div id="timer"></div>
+    <img id="game-image" src="" style="max-width:80%; height:200px; border:5px solid #ecf0f1; border-radius:10px;">
     <div id="map"></div>
-    <button id="action-btn">Gissa!</button>
-    <button id="next-btn" style="display:none;">Nästa fråga</button>
+    <button id="action-btn">Lås in gissning 📍</button>
+    <button id="next-btn" style="display:none;">Nästa destination ➡️</button>
     <div id="result-box"></div>
 </div>
 
 <div id="win-screen" style="display:none;">
     <h1 id="win-text"></h1>
-    <button onclick="location.reload()">Spela igen</button>
+    <button onclick="location.reload()">Boka ny resa!</button>
 </div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
