@@ -5,25 +5,41 @@
     <title>Närmast Platsen Vinner</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <style>
-        body { font-family: 'Impact', sans-serif; background: #2c3e50; color: white; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        #menu, #win-screen, #turn-screen, #video-screen, #game-area { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #2c3e50; z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        #game-area { display: none; padding: 20px; }
+        body { 
+            font-family: 'Impact', sans-serif; background: #2c3e50; color: white; 
+            margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; 
+        }
+
+        #menu, #win-screen, #turn-screen, #video-screen, #game-area { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: #2c3e50; z-index: 9999; display: flex; 
+            flex-direction: column; justify-content: center; align-items: center;
+        }
+
+        #game-area { display: none; padding: 10px; }
 
         .comic-title { color: #f1c40f; font-size: 5vw; text-transform: uppercase; text-shadow: 4px 4px 0 #000; margin-bottom: 10px; }
-        .comic-btn { padding: 15px 30px; font-size: 20px; border: 3px solid #000; background: #e67e22; color: white; cursor: pointer; box-shadow: 6px 6px 0 rgba(0,0,0,0.5); text-transform: uppercase; margin: 10px; }
+        .comic-btn { 
+            padding: 15px 30px; font-size: 20px; border: 3px solid #000; 
+            background: #e67e22; color: white; cursor: pointer; 
+            box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.5); text-transform: uppercase; margin: 5px; 
+        }
 
-        .top-container { display: flex; align-items: center; justify-content: center; gap: 40px; margin-bottom: 10px; }
-        #game-image { width: 400px; height: 250px; border: 5px solid white; object-fit: cover; }
-        #score-stats { font-size: 1.5em; background: #34495e; padding: 15px; border-left: 10px solid #e67e22; min-width: 300px; }
-        
+        /* Layout för bild och poäng */
+        .top-container { display: flex; align-items: center; justify-content: center; gap: 20px; margin-bottom: 10px; }
+        #game-image { width: 350px; height: 200px; border: 5px solid white; object-fit: cover; }
+        #score-stats { font-size: 1.3em; background: #34495e; padding: 10px; border-left: 10px solid #e67e22; min-width: 250px; }
+
+        /* Kartlayout */
         #map { height: 300px !important; width: 700px !important; margin: 0 auto; border: 5px solid #e67e22; }
-        #result-box { font-size: 1.4em; background: #34495e; padding: 15px; width: 700px; margin: 10px auto; display: none; border: 3px solid #e67e22; color: white; text-shadow: 1px 1px 2px #000; }
-        
+        #result-box { font-size: 1.2em; background: #34495e; padding: 10px; width: 700px; margin: 10px auto; display: none; border: 3px solid #e67e22; color: white; }
+
         #video-screen { background: black; }
         #video-screen video { width: 100%; height: 100%; object-fit: contain; }
     </style>
 </head>
 <body>
+
     <div id="menu">
         <h1 class="comic-title">Närmast Platsen Vinner</h1>
         <button class="comic-btn" onclick="startGame('lag')">Första Klass mot Dressinen</button>
@@ -31,7 +47,9 @@
     </div>
 
     <div id="video-screen" style="display:none;">
-        <video id="intro-video" autoplay controls><source src="intro.mp4" type="video/mp4"></video>
+        <video id="intro-video" autoplay controls>
+            <source src="intro.mp4" type="video/mp4">
+        </video>
         <button class="comic-btn" style="position:absolute; bottom:50px;" onclick="finishVideo()">Hoppa över</button>
     </div>
 
@@ -45,18 +63,18 @@
             <img id="game-image" src="" alt="Destination">
             <div id="score-stats">
                 <div id="score-board">Första Klass: 0 | Dressinen: 0</div>
-                <div id="timer"></div>
             </div>
         </div>
         <div id="map"></div>
         <div id="result-box"></div>
         <button id="action-btn" class="comic-btn" onclick="processGuess()">Lås In Gissning</button>
         <button id="next-btn" class="comic-btn" style="display:none;" onclick="nextRound()">Nästa Mål</button>
+        <button class="comic-btn" style="background:#7f8c8d;" onclick="goToMenu()">Till Huvudmeny</button>
     </div>
 
     <div id="win-screen" style="display:none;">
         <h1 class="comic-title" id="win-text"></h1>
-        <button class="comic-btn" onclick="location.reload()">Spela Igen</button>
+        <button class="comic-btn" onclick="goToMenu()">Till Huvudmeny</button>
     </div>
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
