@@ -19,6 +19,7 @@
       --muted: #7a6f62;
       --white: #ffffff;
       --shadow: 4px 4px 0px var(--ink);
+      --shadow-lg: 6px 6px 0px var(--ink);
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -42,15 +43,31 @@
       letter-spacing: .08em;
       color: var(--white);
       background: var(--red);
-      border: 2px solid var(--ink);
+      border: 2.5px solid var(--ink);
       box-shadow: var(--shadow);
       padding: .6rem 1.4rem;
       cursor: pointer;
-      transition: transform .05s;
+      transition: transform .1s, box-shadow .1s;
+      
+      /* MOBIL-FIXAR: */
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      position: relative;
+      z-index: 100;
     }
+
+    /* Hover-effekten aktiveras BARA på skärmar med riktig muspekare (dator) */
+    @media (hover: hover) {
+      .btn:hover  { transform: translate(-2px,-2px); box-shadow: var(--shadow-lg); }
+    }
+
     .btn:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 var(--ink); }
     .btn.secondary { background: var(--track); }
-    .btn.ghost { background: transparent; color: var(--ink); }
+    
+    .btn.ghost { background: transparent; color: var(--ink); box-shadow: none; border-color: transparent; }
+    @media (hover: hover) {
+      .btn.ghost:hover { background: rgba(0,0,0,0.05); box-shadow: none; transform: none; }
+    }
 
     /* ── MENU ── */
     #menu {
@@ -94,12 +111,13 @@
     /* ── GAME AREA ── */
     #game-area {
       flex-direction: column;
-      height: 100vh;
+      min-height: 100vh;
       padding: 1rem;
       gap: 1rem;
       max-width: 1000px;
       margin: 0 auto;
       width: 100%;
+      padding-bottom: 5rem; /* Extrayta i botten för att undvika mobila menyer */
     }
 
     .game-header {
@@ -109,6 +127,7 @@
       color: var(--white);
       padding: .8rem 1.2rem;
       font-family: 'Bebas Neue', sans-serif;
+      border: 2px solid var(--ink);
     }
     #timer.urgent { color: var(--red); }
 
@@ -153,11 +172,13 @@
       width: 100%;
       flex: 1; /* Kartan tar upp resten av utrymmet i play-area */
       min-height: 300px;
+      z-index: 1; /* Ser till att Leaflets egna z-index inte stör knappar */
     }
 
     #result-box {
       background: var(--cream);
       border: 2px solid var(--ink);
+      box-shadow: var(--shadow);
       padding: 1rem 1.4rem;
       display: none;
       gap: 1rem;
@@ -167,7 +188,7 @@
     #result-score { font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; color: var(--red); }
     #result-text { font-size: .9rem; color: var(--muted); line-height: 1.4; }
 
-    .action-row { display: flex; gap: .75rem; flex-wrap: wrap; margin-top: auto; }
+    .action-row { display: flex; gap: .75rem; flex-wrap: wrap; margin-top: auto; position: relative; z-index: 100; }
     #next-btn { display: none; }
 
     /* ── WINNER OVERLAY ── */
@@ -246,4 +267,13 @@
 
   <div id="winner-overlay">
     <div class="winner-card">
-      <div class="winner-title" id="winner-title">Lag vinner!
+      <div class="winner-title" id="winner-title">Lag vinner!</div>
+      <div class="winner-score" id="winner-score">0 - 0</div>
+      <button class="btn ghost" id="btn-winner-menu">Tillbaka till menyn</button>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
