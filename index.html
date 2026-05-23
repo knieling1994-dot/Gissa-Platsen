@@ -10,16 +10,15 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
     :root {
-      --ink:      #1a1a2e;
-      --paper:    #f5f0e8;
-      --cream:    #ede8dc;
-      --red:      #c0392b;
-      --gold:     #d4a843;
-      --track:    #5d4e37;
-      --muted:    #7a6f62;
-      --white:    #ffffff;
-      --shadow:   4px 4px 0px var(--ink);
-      --shadow-lg:6px 6px 0px var(--ink);
+      --ink: #1a1a2e;
+      --paper: #f5f0e8;
+      --cream: #ede8dc;
+      --red: #c0392b;
+      --gold: #d4a843;
+      --track: #5d4e37;
+      --muted: #7a6f62;
+      --white: #ffffff;
+      --shadow: 4px 4px 0px var(--ink);
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -27,9 +26,6 @@
     body {
       font-family: 'DM Sans', sans-serif;
       background-color: var(--paper);
-      background-image:
-        repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(26,26,46,.06) 39px, rgba(26,26,46,.06) 40px),
-        repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(26,26,46,.04) 39px, rgba(26,26,46,.04) 40px);
       color: var(--ink);
       min-height: 100vh;
       overflow-x: hidden;
@@ -46,14 +42,13 @@
       letter-spacing: .08em;
       color: var(--white);
       background: var(--red);
-      border: 2.5px solid var(--ink);
+      border: 2px solid var(--ink);
       box-shadow: var(--shadow);
-      padding: .55rem 1.4rem;
+      padding: .6rem 1.4rem;
       cursor: pointer;
-      transition: transform .1s, box-shadow .1s;
+      transition: transform .05s;
     }
-    .btn:hover  { transform: translate(-2px,-2px); box-shadow: var(--shadow-lg); }
-    .btn:active { transform: translate(2px,2px);  box-shadow: 1px 1px 0 var(--ink); }
+    .btn:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 var(--ink); }
     .btn.secondary { background: var(--track); }
     .btn.ghost { background: transparent; color: var(--ink); }
 
@@ -63,56 +58,29 @@
       align-items: center;
       justify-content: center;
       min-height: 100vh;
-      gap: 1rem;
+      gap: 1.5rem;
       padding: 2rem;
     }
     #menu h1 {
       font-family: 'Bebas Neue', sans-serif;
       font-size: clamp(3rem, 10vw, 6rem);
       text-align: center;
-      line-height: 1;
-      margin-bottom: .5rem;
-    }
-    #menu p {
-      color: var(--muted);
-      font-size: .9rem;
-      margin-bottom: 1rem;
+      line-height: 1.1;
     }
     .menu-card {
       background: var(--cream);
-      border: 2.5px solid var(--ink);
-      box-shadow: var(--shadow-lg);
-      padding: 2rem 2.5rem;
+      border: 2px solid var(--ink);
+      box-shadow: var(--shadow);
+      padding: 2.5rem;
       display: flex;
       flex-direction: column;
       gap: 1rem;
       width: 100%;
       max-width: 400px;
     }
-    .divider {
-      display: flex; align-items: center; gap: .5rem;
-      color: var(--muted); font-size: .75rem; text-transform: uppercase; letter-spacing: .1em;
-    }
-    .divider::before, .divider::after { content:''; flex:1; height:1px; background:var(--muted); }
 
-    /* ── VIDEO ── */
-    #video-screen {
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      gap: 1.5rem;
-      background: var(--ink);
-      padding: 2rem;
-    }
-    #video-screen video {
-      max-width: 860px;
-      width: 100%;
-      border: 3px solid var(--gold);
-    }
-
-    /* ── TURN ── */
-    #turn-screen {
+    /* ── VIDEO/TURN ── */
+    #video-screen, #turn-screen {
       flex-direction: column;
       align-items: center;
       justify-content: center;
@@ -120,19 +88,8 @@
       gap: 1.5rem;
       padding: 2rem;
     }
-    #turn-screen h1 {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: clamp(2rem, 8vw, 5rem);
-      color: var(--red);
-      text-align: center;
-    }
-    .turn-label {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: .85rem;
-      letter-spacing: .25em;
-      color: var(--muted);
-      text-transform: uppercase;
-    }
+    #turn-text { font-family: 'Bebas Neue', sans-serif; font-size: clamp(3rem, 8vw, 5rem); color: var(--red); }
+    #video-screen video { max-width: 860px; width: 100%; border: 3px solid var(--ink); }
 
     /* ── GAME AREA ── */
     #game-area {
@@ -140,188 +97,107 @@
       height: 100vh;
       padding: 1rem;
       gap: 1rem;
-      max-width: 1200px;
+      max-width: 1000px;
       margin: 0 auto;
       width: 100%;
     }
 
-    /* Header */
     .game-header {
       display: flex;
-      align-items: center;
       justify-content: space-between;
       background: var(--ink);
       color: var(--white);
-      padding: .6rem 1.2rem;
-      gap: 1rem;
-      flex-wrap: wrap;
-    }
-    .game-header .logo {
+      padding: .8rem 1.2rem;
       font-family: 'Bebas Neue', sans-serif;
-      font-size: 1.2rem;
-      letter-spacing: .1em;
-      color: var(--gold);
     }
-    #score-board {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 1rem;
-      letter-spacing: .05em;
-    }
-    #timer {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 1.4rem;
-      color: var(--gold);
-      min-width: 70px;
-      text-align: right;
-    }
-    #timer.urgent { color: var(--red); animation: pulse .6s ease-in-out infinite; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    #timer.urgent { color: var(--red); }
 
-    /* Play panels - Anpassad layout! */
+    /* Vertikal layout för stapling! */
     .play-area {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
+      display: flex;
+      flex-direction: column; /* Staplar elementen vertikalt */
       gap: 1rem;
-      flex: 1;
-      min-height: 0; /* Avgörande för att gridsystemet ska kunna fylla och krympa */
-    }
-    
-    @media (max-width: 800px) { 
-      .play-area { grid-template-columns: 1fr; } 
-      #game-area { height: auto; min-height: 100vh; }
-      #game-image, #map { min-height: 250px; }
+      flex: 1; /* Fyller utrymmet mellan header och knappar */
+      min-height: 0;
     }
 
     .panel {
-      border: 2.5px solid var(--ink);
+      border: 2px solid var(--ink);
       box-shadow: var(--shadow);
-      position: relative;
       background: var(--cream);
       display: flex;
       flex-direction: column;
       overflow: hidden;
+      position: relative;
     }
     .panel-label {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: .75rem;
-      letter-spacing: .18em;
+      position: absolute;
+      top: 0; left: 0;
       background: var(--ink);
       color: var(--gold);
       padding: .3rem .8rem;
-      position: absolute;
-      top: 0; left: 0;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: .7rem;
       z-index: 10;
     }
+    
     #game-image {
       width: 100%;
-      height: 100%;
+      height: auto;
+      aspect-ratio: 16 / 9; /* Sätter ett proportionellt mått för bilden */
       object-fit: cover; /* Ser till att bilden sträcker sig fint och fyller ytan */
       display: block;
-      flex: 1;
-      min-height: 0;
     }
+    
     #map {
       width: 100%;
-      height: 100%;
-      flex: 1;
-      min-height: 0;
+      flex: 1; /* Kartan tar upp resten av utrymmet i play-area */
+      min-height: 300px;
     }
 
-    /* Result */
     #result-box {
       background: var(--cream);
-      border: 2.5px solid var(--ink);
-      box-shadow: var(--shadow);
+      border: 2px solid var(--ink);
       padding: 1rem 1.4rem;
       display: none;
       gap: 1rem;
       align-items: center;
-      flex-wrap: wrap;
     }
     #result-box.visible { display: flex; }
-    #result-score {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 1.6rem;
-      color: var(--red);
-    }
-    #result-text { font-size: .9rem; color: var(--muted); flex: 1; line-height: 1.6; }
+    #result-score { font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; color: var(--red); }
+    #result-text { font-size: .9rem; color: var(--muted); line-height: 1.4; }
 
-    /* Action row */
-    .action-row { display: flex; gap: .75rem; flex-wrap: wrap; }
+    .action-row { display: flex; gap: .75rem; flex-wrap: wrap; margin-top: auto; }
     #next-btn { display: none; }
 
     /* ── WINNER OVERLAY ── */
     #winner-overlay {
       display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(26,26,46,.85);
+      position: fixed; inset: 0;
+      background: rgba(26,26,46,.9);
       z-index: 1000;
-      align-items: center;
-      justify-content: center;
+      align-items: center; justify-content: center;
       padding: 2rem;
     }
     #winner-overlay.show { display: flex; }
-
     .winner-card {
       background: var(--paper);
-      border: 3px solid var(--ink);
-      box-shadow: 8px 8px 0 var(--ink);
-      padding: 3rem 3.5rem;
-      max-width: 480px;
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 1.2rem;
+      border: 2px solid var(--ink);
+      padding: 3rem;
+      max-width: 450px;
       text-align: center;
-      animation: popIn .35s cubic-bezier(.175,.885,.32,1.275);
+      display: flex; flex-direction: column; gap: 1rem;
     }
-    @keyframes popIn {
-      from { transform: scale(.7); opacity: 0; }
-      to   { transform: scale(1);  opacity: 1; }
-    }
-    .winner-trophy {
-      font-size: 4rem;
-      line-height: 1;
-    }
-    .winner-title {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: clamp(1.8rem, 6vw, 3rem);
-      color: var(--red);
-      line-height: 1;
-    }
-    .winner-subtitle {
-      font-size: .95rem;
-      color: var(--muted);
-    }
-    .winner-score {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 2rem;
-      color: var(--ink);
-      letter-spacing: .05em;
-      border-top: 2px dashed var(--muted);
-      border-bottom: 2px dashed var(--muted);
-      padding: .6rem 2rem;
-      width: 100%;
-    }
-    .winner-btns {
-      display: flex;
-      gap: 1rem;
-      flex-wrap: wrap;
-      justify-content: center;
-      margin-top: .5rem;
-    }
+    .winner-title { font-family: 'Bebas Neue', sans-serif; font-size: 3rem; color: var(--red); line-height: 1; }
+    .winner-score { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; border-top: 1px dashed; border-bottom: 1px dashed; padding: .6rem 0; }
   </style>
 </head>
 <body>
 
   <div id="menu" class="screen active">
     <h1>Närmast Platsen<br>Vinner</h1>
-    <p>Gissa var i världen — närmast vinner</p>
     <div class="menu-card">
       <button class="btn" id="btn-lag">⚔ Första Klass mot Dressinen</button>
-      <div class="divider">eller</div>
       <button class="btn secondary" id="btn-solo">🗺 Spela Solo</button>
     </div>
   </div>
@@ -329,28 +205,26 @@
   <div id="video-screen" class="screen">
     <video id="intro-video" controls>
       <source src="intro.mp4" type="video/mp4" />
-      Din webbläsare stöder inte video.
     </video>
     <button class="btn ghost" id="btn-skip-video">Hoppa över →</button>
   </div>
 
   <div id="turn-screen" class="screen">
-    <span class="turn-label">Nu spelar</span>
     <h1 id="turn-text">Lag X</h1>
     <button class="btn" id="btn-start-round">Starta Tur</button>
   </div>
 
   <div id="game-area" class="screen">
     <div class="game-header">
-      <span class="logo">NPV</span>
-      <div id="score-board">Första Klass: 0 | Dressinen: 0</div>
-      <div id="timer">Tid: 15</div>
+      <span>Första Klass vs Dressinen</span>
+      <div id="score-board">FK: 0 | D: 0</div>
+      <div id="timer">15</div>
     </div>
 
     <div class="play-area">
       <div class="panel">
         <span class="panel-label">📍 Var är detta?</span>
-        <img id="game-image" src="" alt="Destination att gissa" />
+        <img id="game-image" src="" alt="Resmål" />
       </div>
       <div class="panel">
         <span class="panel-label">🗺 Karta</span>
@@ -359,31 +233,17 @@
     </div>
 
     <div id="result-box">
-      <div id="result-score">— km</div>
-      <div id="result-text">Resultat visas här efter gissning.</div>
+      <div id="result-score">📍</div>
+      <div id="result-text">Resultat.</div>
     </div>
 
     <div class="action-row">
-      <button class="btn" id="action-btn">🔒 Lås In Gissning</button>
-      <button class="btn secondary" id="next-btn">Nästa Mål →</button>
-      <button class="btn ghost" id="menu-btn">↩ Huvudmeny</button>
+      <button class="btn" id="action-btn">🔒 Gissa</button>
+      <button class="btn secondary" id="next-btn">Nästa →</button>
+      <button class="btn ghost" id="menu-btn">Huvudmeny</button>
     </div>
   </div>
 
   <div id="winner-overlay">
     <div class="winner-card">
-      <div class="winner-trophy">🏆</div>
-      <div class="winner-title" id="winner-title">Lag vinner!</div>
-      <div class="winner-subtitle" id="winner-subtitle">Grattis till segrarna</div>
-      <div class="winner-score" id="winner-score">0 – 0</div>
-      <div class="winner-btns">
-        <button class="btn" id="btn-play-again">🔄 Spela igen</button>
-        <button class="btn ghost" id="btn-winner-menu">↩ Huvudmeny</button>
-      </div>
-    </div>
-  </div>
-
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script src="game.js"></script>
-</body>
-</html>
+      <div class="winner-title" id="winner-title">Lag vinner!
