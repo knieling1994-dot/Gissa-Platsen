@@ -1,1 +1,2 @@
-efter en match är vunnen går den direkt till Detta lag van spela igen utan att visa statistiken och karten efter sista gissningen, fixa det.
+går inte att starta i menyn
+den laddar inte bilder från internet. samt att det är svårt att kontrollera om de är bra bilder eller ens visar rätt, Danne får kolla på det
