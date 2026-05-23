@@ -110,17 +110,26 @@ function showResults() {
     document.getElementById('next-btn').style.display = 'inline-block';
     
     let q = questions[currentRound];
-    // Facit läggs till HÄR
     let correct = L.marker([q.lat, q.lng], { icon: getIcon('green') }).addTo(map);
     roundMarkers.push(correct);
     
-    let dist1 = redGuess ? map.distance(redGuess, [q.lat, q.lng]) / 1000 : null;
-    let dist2 = blueGuess ? map.distance(blueGuess, [q.lat, q.lng]) / 1000 : null;
+    let dist = redGuess ? map.distance(redGuess, [q.lat, q.lng]) / 1000 : null;
     let fmt = (d) => d === null ? "Missat" : Math.round(d) + " km";
+
+    let resultHTML = `<strong>${q.name}</strong><br>`;
     
-    document.getElementById('result-box').innerHTML = `<strong>${q.name}</strong><br>Första Klass: ${fmt(dist1)}<br>Dressinen: ${fmt(dist2)}<br><strong style="color:#f1c40f;">${(dist1 < dist2) ? "Första Klass vann!" : (dist2 < dist1) ? "Dressinen vann!" : "Oavgjort!"}</strong>`;
-    if (dist1 !== null && dist2 !== null) { if (dist1 < dist2) score1++; else if (dist2 < dist1) score2++; }
-    document.getElementById('score-board').innerText = `Första Klass: ${score1} | Dressinen: ${score2}`;
+    if (mode === 'solo') {
+        resultHTML += `Din gissning var ${fmt(dist)} från målet!`;
+    } else {
+        let dist1 = redGuess ? map.distance(redGuess, [q.lat, q.lng]) / 1000 : null;
+        let dist2 = blueGuess ? map.distance(blueGuess, [q.lat, q.lng]) / 1000 : null;
+        resultHTML += `Första Klass: ${fmt(dist1)}<br>Dressinen: ${fmt(dist2)}<br>
+                       <strong style="color:#f1c40f;">${(dist1 < dist2) ? "Första Klass vann!" : (dist2 < dist1) ? "Dressinen vann!" : "Oavgjort!"}</strong>`;
+        if (dist1 !== null && dist2 !== null) { if (dist1 < dist2) score1++; else if (dist2 < dist1) score2++; }
+        document.getElementById('score-board').innerText = `Första Klass: ${score1} | Dressinen: ${score2}`;
+    }
+    
+    document.getElementById('result-box').innerHTML = resultHTML;
 }
 
 function nextRound() {
