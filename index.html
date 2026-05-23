@@ -2,25 +2,21 @@
 <html lang="sv">
 </head>
 <body>
-
     <div id="menu">
         <h1 class="comic-title">Närmast Platsen Vinner</h1>
         <button class="comic-btn" onclick="startGame('lag')">Första Klass mot Dressinen</button>
         <button class="comic-btn" onclick="startGame('solo')">Spela Solo</button>
     </div>
-
     <div id="video-screen" style="display:none;">
         <video id="intro-video" controls>
             <source src="intro.mp4" type="video/mp4">
         </video>
         <button class="comic-btn" style="position:absolute; bottom:50px;" onclick="finishVideo()">Hoppa över</button>
     </div>
-
     <div id="turn-screen" style="display:none;">
         <h1 class="comic-title" id="turn-text"></h1>
         <button class="comic-btn" onclick="startRound()">Starta Tur</button>
     </div>
-
     <div id="game-area">
         <div class="top-container">
             <img id="game-image" src="" alt="Destination">
@@ -37,7 +33,6 @@
         <button id="next-btn" class="comic-btn" style="display:none;" onclick="nextRound()">Nästa Mål</button>
         <button class="comic-btn" style="background:#7f8c8d;" onclick="goToMenu()">Till Huvudmeny</button>
     </div>
-
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="game.js"></script>
 </body>
