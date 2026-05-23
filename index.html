@@ -32,6 +32,7 @@
         repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(26,26,46,.04) 39px, rgba(26,26,46,.04) 40px);
       color: var(--ink);
       min-height: 100vh;
+      overflow-x: hidden;
     }
 
     /* ── Screen system ── */
@@ -136,10 +137,10 @@
     /* ── GAME AREA ── */
     #game-area {
       flex-direction: column;
-      min-height: 100vh;
+      height: 100vh;
       padding: 1rem;
       gap: 1rem;
-      max-width: 1100px;
+      max-width: 1200px;
       margin: 0 auto;
       width: 100%;
     }
@@ -176,22 +177,29 @@
     #timer.urgent { color: var(--red); animation: pulse .6s ease-in-out infinite; }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
 
-    /* Play panels */
+    /* Play panels - Anpassad layout! */
     .play-area {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 1rem;
       flex: 1;
+      min-height: 0; /* Avgörande för att gridsystemet ska kunna fylla och krympa */
     }
-    @media (max-width: 700px) { .play-area { grid-template-columns: 1fr; } }
+    
+    @media (max-width: 800px) { 
+      .play-area { grid-template-columns: 1fr; } 
+      #game-area { height: auto; min-height: 100vh; }
+      #game-image, #map { min-height: 250px; }
+    }
 
     .panel {
       border: 2.5px solid var(--ink);
       box-shadow: var(--shadow);
-      overflow: hidden;
       position: relative;
       background: var(--cream);
-      min-height: 300px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
     }
     .panel-label {
       font-family: 'Bebas Neue', sans-serif;
@@ -207,14 +215,16 @@
     #game-image {
       width: 100%;
       height: 100%;
-      min-height: 300px;
-      object-fit: cover;
+      object-fit: cover; /* Ser till att bilden sträcker sig fint och fyller ytan */
       display: block;
+      flex: 1;
+      min-height: 0;
     }
     #map {
       width: 100%;
       height: 100%;
-      min-height: 300px;
+      flex: 1;
+      min-height: 0;
     }
 
     /* Result */
@@ -306,7 +316,6 @@
 </head>
 <body>
 
-  <!-- MENU -->
   <div id="menu" class="screen active">
     <h1>Närmast Platsen<br>Vinner</h1>
     <p>Gissa var i världen — närmast vinner</p>
@@ -317,7 +326,6 @@
     </div>
   </div>
 
-  <!-- VIDEO -->
   <div id="video-screen" class="screen">
     <video id="intro-video" controls>
       <source src="intro.mp4" type="video/mp4" />
@@ -326,14 +334,12 @@
     <button class="btn ghost" id="btn-skip-video">Hoppa över →</button>
   </div>
 
-  <!-- TURN -->
   <div id="turn-screen" class="screen">
     <span class="turn-label">Nu spelar</span>
     <h1 id="turn-text">Lag X</h1>
     <button class="btn" id="btn-start-round">Starta Tur</button>
   </div>
 
-  <!-- GAME -->
   <div id="game-area" class="screen">
     <div class="game-header">
       <span class="logo">NPV</span>
@@ -364,7 +370,6 @@
     </div>
   </div>
 
-  <!-- WINNER OVERLAY -->
   <div id="winner-overlay">
     <div class="winner-card">
       <div class="winner-trophy">🏆</div>
