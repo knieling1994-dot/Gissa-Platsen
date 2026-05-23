@@ -142,7 +142,6 @@ function startGame(selectedMode) {
   currentRound = 0;
   turn = 'Första Klass';
   questions = [...questionsData].sort(() => Math.random() - 0.5);
-  // Dölj overlay om den är öppen
   document.getElementById('winner-overlay').classList.remove('show');
 
   if (mode === 'lag') {
@@ -185,8 +184,10 @@ function startRound() {
   const img = document.getElementById('game-image');
   img.alt = q.name;
   img.src = q.img;
+  
+  // Om Wikipedia-bilden skulle vara trasig, hämtar den en riktig bild via loremflickr istället för text.
   img.onerror = () => {
-    img.src = `https://placehold.co/600x400/1a1a2e/f5f0e8?text=${encodeURIComponent(q.name)}`;
+    img.src = `https://loremflickr.com/800/600/${encodeURIComponent(q.name)}`;
   };
 
   if (mode === 'lag') startTimer();
@@ -202,15 +203,18 @@ function processGuess() {
     showResults();
 
   } else if (turn === 'Första Klass') {
-    redGuess = guess;
+    redGuess = guess; // SPARA gissningen här!
     if (tempMarker) {
       tempMarker.setIcon(getIcon('red'));
-      tempMarker.setOpacity(0);
+      tempMarker.setOpacity(0); // Göm från Lag 2
       roundMarkers.push(tempMarker);
       tempMarker = null;
     }
+    
     turn = 'Dressinen';
-    loadRound();
+    // Ändra endast skärmen istället för att ladda om hela rundan!
+    document.getElementById('turn-text').textContent = `${turn}, dags att resa!`;
+    showScreen('turn-screen');
 
   } else {
     blueGuess = guess;
@@ -220,7 +224,7 @@ function processGuess() {
 }
 
 function showResults() {
-  roundMarkers.forEach(m => m.setOpacity(1));
+  roundMarkers.forEach(m => m.setOpacity(1)); // Gör Första Klass gissning synlig igen
 
   const q = questions[currentRound % questions.length];
   const correct = L.marker([q.lat, q.lng], { icon: getIcon('gold') }).addTo(map);
@@ -254,7 +258,6 @@ function showResults() {
   document.getElementById('result-box').classList.add('visible');
   document.getElementById('action-btn').style.display = 'none';
 
-  // Byt knapptext om matchen är avgjord
   const matchOver = mode === 'lag' && (score1 >= WIN_SCORE || score2 >= WIN_SCORE);
   const btn = document.getElementById('next-btn');
   btn.textContent = matchOver ? '🏆 Se vinnaren →' : 'Nästa Mål →';
@@ -262,7 +265,6 @@ function showResults() {
 }
 
 function nextRound() {
-  // Kolla om matchen är avgjord innan vi går vidare
   if (mode === 'lag' && (score1 >= WIN_SCORE || score2 >= WIN_SCORE)) {
     showWinnerOverlay();
     return;
@@ -271,7 +273,6 @@ function nextRound() {
   currentRound++;
   turn = 'Första Klass';
   if (currentRound >= questions.length) {
-    // Frågorna tog slut utan vinnare — visa bäst-av-resultatet
     showWinnerOverlay();
     return;
   }
