@@ -138,3 +138,16 @@ function nextRound() {
 
 function goToMenu() { location.reload(); }
 function getIcon(c) { return L.icon({ iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${c}.png`, iconSize: [25, 41] }); }
+
+document.addEventListener("DOMContentLoaded", function() {
+    console.log("Spelet laddat!");
+    
+    // Om du har en knapp med ID 'menu-btn' i HTML, tvinga fram funktionen
+    let menuBtn = document.querySelector('[onclick="goToMenu()"]');
+    if(menuBtn) {
+        menuBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            location.reload();
+        });
+    }
+});
