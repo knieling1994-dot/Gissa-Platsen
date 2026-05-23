@@ -1,162 +1,295 @@
-let mode, turn = 'Första klass', score1 = 0, score2 = 0, currentRound = 0, timer = null, timeLeft;
-let redGuess, blueGuess, tempMarker, roundMarkers = [], map;
+/* ═══════════════════════════════════════════
+   NÄRMAST PLATSEN VINNER — game.js
+   Kompatibel med index.html (screen-klass-systemet)
+═══════════════════════════════════════════ */
 
-const questionsData = [
-    { "name": "Eiffeltornet", "lat": 48.8584, "lng": 2.2945 },
-    { "name": "Berlinmuren", "lat": 52.5167, "lng": 13.3775 },
-    { "name": "Tjernobyl", "lat": 51.3896, "lng": 30.0998 },
-    { "name": "Colosseum", "lat": 41.8902, "lng": 12.4922 },
-    { "name": "Pyramiderna", "lat": 29.9792, "lng": 31.1342 },
-    { "name": "Machu Picchu", "lat": -13.1631, lng: -72.5450 },
-    { "name": "Kinesiska muren", "lat": 40.4319, lng: 116.5704 },
-    { "name": "Frihetsgudinnan", "lat": 40.6892, lng: -74.0445 },
-    { "name": "Taj Mahal", "lat": 27.1751, "lng": 78.0421 },
-    { "name": "Akropolis", "lat": 37.9715, lng: 23.7267 },
-    { "name": "Stora barriärrevet", "lat": -18.2871, lng: 147.6992 },
-    { "name": "Petra", "lat": 30.3285, lng: 35.4444 },
-    { "name": "Sagrada Familia", "lat": 41.4036, lng: 2.1744 },
-    { "name": "Mount Everest", "lat": 27.9881, lng: 86.9250 },
-    { "name": "Burj Khalifa", "lat": 25.1972, lng: 55.2744 },
-    { "name": "Stonehenge", "lat": 51.1789, lng: -1.8262 },
-    { "name": "Chichén Itzá", "lat": 20.6843, lng: -88.5678 },
-    { "name": "Sydney Opera House", "lat": -33.8568, lng: 151.2153 },
-    { "name": "Angkor Wat", "lat": 13.4125, lng: 103.8670 },
-    { "name": "Alhambra", "lat": 37.1760, lng: -3.5881 },
-    { "name": "Christ the Redeemer", "lat": -22.9519, lng: -43.2105 },
-    { "name": "Vatikanstaten", "lat": 41.9029, lng: 12.4534 },
-    { "name": "Hollywoodskylten", "lat": 34.1341, lng: -118.3215 },
-    { "name": "Mont Saint-Michel", "lat": 48.6361, lng: -1.5115 },
-    { "name": "Golden Gate-bron", "lat": 37.8199, lng: -122.4783 },
-    { "name": "Hagia Sofia", "lat": 41.0086, lng: 28.9802 },
-    { "name": "Versailles", "lat": 48.8049, lng: 2.1204 }
-];
+'use strict';
+
+// ── State ──────────────────────────────────
+let mode, turn = 'Första klass';
+let score1 = 0, score2 = 0;
+let currentRound = 0;
+let timer = null, timeLeft = 15;
+let redGuess = null, blueGuess = null;
+let tempMarker = null, roundMarkers = [], map = null;
 let questions = [];
 
-function startGame(selectedMode) {
-    mode = selectedMode;
-    document.getElementById('menu').style.display = 'none';
-    questions = [...questionsData].sort(() => Math.random() - 0.5);
-    turn = (mode === 'solo') ? 'Du' : 'Första klass';
-    
-    if (mode === 'lag') {
-        let vidScreen = document.getElementById('video-screen');
-        let vid = document.getElementById('intro-video');
-        if (vidScreen && vid) {
-            vidScreen.style.display = 'flex';
-            vid.play();
-        } else { loadRound(); }
-    } else { loadRound(); }
+// ── Frågedatabas ───────────────────────────
+const questionsData = [
+  { name: 'Eiffeltornet',       lat:  48.8584, lng:   2.2945, img: 'Eiffel_Tower' },
+  { name: 'Berlinmuren',        lat:  52.5167, lng:  13.3775, img: 'Berlin_Wall' },
+  { name: 'Tjernobyl',          lat:  51.3896, lng:  30.0998, img: 'Chernobyl_Nuclear_Power_Plant' },
+  { name: 'Colosseum',          lat:  41.8902, lng:  12.4922, img: 'Colosseum_in_Rome' },
+  { name: 'Pyramiderna',        lat:  29.9792, lng:  31.1342, img: 'Great_Pyramid_of_Giza' },
+  { name: 'Machu Picchu',       lat: -13.1631, lng: -72.5450, img: 'Machu_Picchu' },
+  { name: 'Kinesiska muren',    lat:  40.4319, lng: 116.5704, img: 'Great_Wall_of_China' },
+  { name: 'Frihetsgudinnan',    lat:  40.6892, lng: -74.0445, img: 'Statue_of_Liberty' },
+  { name: 'Taj Mahal',          lat:  27.1751, lng:  78.0421, img: 'Taj_Mahal' },
+  { name: 'Akropolis',          lat:  37.9715, lng:  23.7267, img: 'Acropolis_of_Athens' },
+  { name: 'Stora barriärrevet', lat: -18.2871, lng: 147.6992, img: 'Great_Barrier_Reef' },
+  { name: 'Petra',              lat:  30.3285, lng:  35.4444, img: 'Petra_Jordan' },
+  { name: 'Sagrada Familia',    lat:  41.4036, lng:   2.1744, img: 'Sagrada_Família' },
+  { name: 'Mount Everest',      lat:  27.9881, lng:  86.9250, img: 'Mount_Everest' },
+  { name: 'Burj Khalifa',       lat:  25.1972, lng:  55.2744, img: 'Burj_Khalifa' },
+  { name: 'Stonehenge',         lat:  51.1789, lng:  -1.8262, img: 'Stonehenge' },
+  { name: 'Chichén Itzá',       lat:  20.6843, lng: -88.5678, img: 'Chichen-Itza' },
+  { name: 'Sydney Opera House', lat: -33.8568, lng: 151.2153, img: 'Sydney_Opera_House' },
+  { name: 'Angkor Wat',         lat:  13.4125, lng: 103.8670, img: 'Angkor_Wat' },
+  { name: 'Alhambra',           lat:  37.1760, lng:  -3.5881, img: 'Alhambra_Granada' },
+  { name: 'Christ the Redeemer',lat: -22.9519, lng: -43.2105, img: 'Cristo_Redentor' },
+  { name: 'Vatikanstaten',      lat:  41.9029, lng:  12.4534, img: 'Saint_Peter%27s_Basilica' },
+  { name: 'Hollywoodskylten',   lat:  34.1341, lng:-118.3215, img: 'Hollywood_Sign' },
+  { name: 'Mont Saint-Michel',  lat:  48.6361, lng:  -1.5115, img: 'Mont_Saint-Michel' },
+  { name: 'Golden Gate-bron',   lat:  37.8199, lng:-122.4783, img: 'Golden_Gate_Bridge' },
+  { name: 'Hagia Sofia',        lat:  41.0086, lng:  28.9802, img: 'Hagia_Sophia' },
+  { name: 'Versailles',         lat:  48.8049, lng:   2.1204, img: 'Palace_of_Versailles' },
+];
+
+// ── Hjälp: skärmhantering ──────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  // Leaflet behöver invalideras när kartan blir synlig
+  if (id === 'game-area' && map) map.invalidateSize();
 }
 
-function finishVideo() { document.getElementById('video-screen').style.display = 'none'; loadRound(); }
+// ── Hjälp: markör-ikon ─────────────────────
+function getIcon(color) {
+  return L.icon({
+    iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${color}.png`,
+    iconSize:   [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+  });
+}
+
+// ── Hjälp: formatera avstånd ───────────────
+function fmt(km) {
+  if (km === null) return 'Missat';
+  return km < 1
+    ? Math.round(km * 1000) + ' m'
+    : Math.round(km) + ' km';
+}
+
+// ── Timer ──────────────────────────────────
+function startTimer() {
+  timeLeft = 15;
+  updateTimerDisplay();
+  timer = setInterval(() => {
+    timeLeft--;
+    updateTimerDisplay();
+    if (timeLeft <= 0) {
+      clearInterval(timer);
+      timer = null;
+      processGuess(); // Tid ute → automatisk inlämning
+    }
+  }, 1000);
+}
+
+function updateTimerDisplay() {
+  const el = document.getElementById('timer');
+  el.textContent = `Tid: ${timeLeft}`;
+  el.classList.toggle('urgent', timeLeft <= 5);
+}
+
+function stopTimer() {
+  if (timer) { clearInterval(timer); timer = null; }
+}
+
+// ── Initiera kartan (en gång) ──────────────
+function initMap() {
+  if (map) return;
+  map = L.map('map', { minZoom: 2 }).setView([20, 0], 2);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap',
+  }).addTo(map);
+  map.on('click', onMapClick);
+}
+
+function onMapClick(e) {
+  if (tempMarker) map.removeLayer(tempMarker);
+  const color = mode === 'solo' ? 'green' : (turn === 'Första klass' ? 'red' : 'blue');
+  tempMarker = L.marker(e.latlng, { icon: getIcon(color) }).addTo(map);
+}
+
+// ══════════════════════════════════════════
+//  SPELFLÖDE
+// ══════════════════════════════════════════
+
+// Anropas från HTML (index.html kopplar knapparna)
+function startGame(selectedMode) {
+  mode = selectedMode;
+  score1 = 0; score2 = 0;
+  currentRound = 0;
+  turn = mode === 'solo' ? 'Du' : 'Första klass';
+  questions = [...questionsData].sort(() => Math.random() - 0.5);
+
+  if (mode === 'lag') {
+    showScreen('video-screen');
+    const vid = document.getElementById('intro-video');
+    if (vid) vid.play().catch(() => {}); // autoplay kan blockeras av webbläsaren
+  } else {
+    loadRound();
+  }
+}
+
+function finishVideo() {
+  const vid = document.getElementById('intro-video');
+  if (vid) vid.pause();
+  loadRound();
+}
 
 function loadRound() {
-    if (tempMarker) { map.removeLayer(tempMarker); tempMarker = null; }
-    document.getElementById('game-area').style.display = 'none';
-    document.getElementById('turn-screen').style.display = 'flex';
-    document.getElementById('turn-text').innerText = (mode === 'solo') ? "Redo?" : turn + ", dags att resa!";
+  stopTimer();
+  clearTempMarker();
+
+  // Ta bort gamla markörer
+  roundMarkers.forEach(m => map && map.removeLayer(m));
+  roundMarkers = [];
+  redGuess = null; blueGuess = null;
+
+  // Dölj resultat & knappar
+  document.getElementById('result-box').classList.remove('visible');
+  document.getElementById('action-btn').style.display = 'inline-block';
+  document.getElementById('next-btn').style.display   = 'none';
+
+  // Visa vems tur det är
+  document.getElementById('turn-text').textContent =
+    mode === 'solo' ? 'Redo att gissa?' : `${turn}, dags att resa!`;
+  showScreen('turn-screen');
 }
 
 function startRound() {
-    document.getElementById('turn-screen').style.display = 'none';
-    document.getElementById('game-area').style.display = 'flex';
-    let q = questions[currentRound];
-    
-    // Förbättrad bildladdning med fallback
-    let img = document.getElementById('game-image');
-    img.onerror = function() { this.src = 'https://via.placeholder.com/400x250?text=Bild+saknas'; };
-    img.src = `https://en.wikipedia.org/wiki/Special:FilePath/${encodeURIComponent(q.name.replace(/ /g, '_'))}.jpg`;
-    
-    if (!map) {
-        map = L.map('map', { minZoom: 2 }).setView([20, 0], 2);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-        map.on('click', (e) => {
-            if (tempMarker) map.removeLayer(tempMarker);
-            tempMarker = L.marker(e.latlng, { icon: getIcon(mode === 'solo' ? 'green' : (turn === 'Första klass' ? 'red' : 'blue')) }).addTo(map);
-        });
-    } else { map.setView([20, 0], 2); }
-    if (mode === 'lag') startTimer();
+  showScreen('game-area');
+  initMap();
+  map.setView([20, 0], 2);
+
+  const q = questions[currentRound % questions.length];
+
+  // Bild — använder specifik img-nyckel per plats
+  const img = document.getElementById('game-image');
+  img.alt = q.name;
+  img.onerror = () => {
+    img.src = `https://placehold.co/600x400/1a1a2e/f5f0e8?text=${encodeURIComponent(q.name)}`;
+  };
+  img.src = `https://en.wikipedia.org/wiki/Special:FilePath/${q.img}.jpg`;
+
+  if (mode === 'lag') startTimer();
 }
 
 function processGuess() {
-    if (timer) clearInterval(timer);
-    let guess = tempMarker ? tempMarker.getLatLng() : null;
-    
-    if (mode === 'solo') {
-        redGuess = guess;
-        if (tempMarker) { tempMarker.setIcon(getIcon('green')); roundMarkers.push(tempMarker); tempMarker = null; }
-        showResults();
-    } else if (turn === 'Första klass') {
-        redGuess = guess;
-        if (tempMarker) { 
-            tempMarker.setIcon(getIcon('red')); 
-            tempMarker.setOpacity(0); // Dölj för lag 2
-            roundMarkers.push(tempMarker); 
-            tempMarker = null; 
-        }
-        turn = 'Dressinen'; 
-        loadRound(); // Går vidare utan att visa facit
-    } else {
-        blueGuess = guess;
-        if (tempMarker) { tempMarker.setIcon(getIcon('blue')); roundMarkers.push(tempMarker); tempMarker = null; }
-        showResults(); // Visar facit först HÄR
+  stopTimer();
+
+  const guess = tempMarker ? tempMarker.getLatLng() : null;
+
+  if (mode === 'solo') {
+    redGuess = guess;
+    if (tempMarker) { tempMarker.setIcon(getIcon('green')); roundMarkers.push(tempMarker); tempMarker = null; }
+    showResults();
+
+  } else if (turn === 'Första klass') {
+    redGuess = guess;
+    if (tempMarker) {
+      tempMarker.setIcon(getIcon('red'));
+      tempMarker.setOpacity(0); // Dölj för lag 2
+      roundMarkers.push(tempMarker);
+      tempMarker = null;
     }
+    turn = 'Dressinen';
+    loadRound();
+
+  } else {
+    blueGuess = guess;
+    if (tempMarker) { tempMarker.setIcon(getIcon('blue')); roundMarkers.push(tempMarker); tempMarker = null; }
+    showResults();
+  }
 }
 
 function showResults() {
-    roundMarkers.forEach(m => m.setOpacity(1));
-    document.getElementById('result-box').style.display = 'block';
-    document.getElementById('action-btn').style.display = 'none';
-    document.getElementById('next-btn').style.display = 'inline-block';
-    
-    let q = questions[currentRound];
-    let correct = L.marker([q.lat, q.lng], { icon: getIcon('green') }).addTo(map);
-    roundMarkers.push(correct);
-    
-    let dist = redGuess ? map.distance(redGuess, [q.lat, q.lng]) / 1000 : null;
-    let fmt = (d) => d === null ? "Missat" : Math.round(d) + " km";
+  // Visa alla dolda markörer
+  roundMarkers.forEach(m => m.setOpacity(1));
 
-    let resultHTML = `<strong>${q.name}</strong><br>`;
-    
-    if (mode === 'solo') {
-        resultHTML += `Din gissning var ${fmt(dist)} från målet!`;
-    } else {
-        let dist1 = redGuess ? map.distance(redGuess, [q.lat, q.lng]) / 1000 : null;
-        let dist2 = blueGuess ? map.distance(blueGuess, [q.lat, q.lng]) / 1000 : null;
-        resultHTML += `Första Klass: ${fmt(dist1)}<br>Dressinen: ${fmt(dist2)}<br>
-                       <strong style="color:#f1c40f;">${(dist1 < dist2) ? "Första Klass vann!" : (dist2 < dist1) ? "Dressinen vann!" : "Oavgjort!"}</strong>`;
-        if (dist1 !== null && dist2 !== null) { if (dist1 < dist2) score1++; else if (dist2 < dist1) score2++; }
-        document.getElementById('score-board').innerText = `Första Klass: ${score1} | Dressinen: ${score2}`;
+  const q = questions[currentRound % questions.length];
+  const correct = L.marker([q.lat, q.lng], { icon: getIcon('gold') }).addTo(map);
+  correct.bindPopup(`<strong>${q.name}</strong>`).openPopup();
+  roundMarkers.push(correct);
+
+  const dist1 = redGuess  ? map.distance(redGuess,  [q.lat, q.lng]) / 1000 : null;
+  const dist2 = blueGuess ? map.distance(blueGuess, [q.lat, q.lng]) / 1000 : null;
+
+  let scoreHTML = '';
+  let resultText = '';
+
+  if (mode === 'solo') {
+    resultText = `Din gissning var <strong>${fmt(dist1)}</strong> från målet.`;
+  } else {
+    let winner = '';
+    if (dist1 !== null && dist2 !== null) {
+      if (dist1 < dist2)      { score1++; winner = '🏆 Första Klass vann rundan!'; }
+      else if (dist2 < dist1) { score2++; winner = '🏆 Dressinen vann rundan!'; }
+      else                    { winner = '🤝 Oavgjort!'; }
     }
-    
-    document.getElementById('result-box').innerHTML = resultHTML;
+    resultText =
+      `Första Klass: <strong>${fmt(dist1)}</strong> &nbsp;|&nbsp; Dressinen: <strong>${fmt(dist2)}</strong><br>
+       <span style="color:var(--gold)">${winner}</span>`;
+    document.getElementById('score-board').textContent =
+      `Första Klass: ${score1} | Dressinen: ${score2}`;
+  }
+
+  document.getElementById('result-score').innerHTML = `📍 ${q.name}`;
+  document.getElementById('result-text').innerHTML  = resultText;
+  document.getElementById('result-box').classList.add('visible');
+  document.getElementById('action-btn').style.display = 'none';
+  document.getElementById('next-btn').style.display   = 'inline-block';
 }
 
 function nextRound() {
-    currentRound++; turn = 'Första klass';
-    // Total rensning av kartan
-    roundMarkers.forEach(m => map.removeLayer(m));
-    roundMarkers = [];
-    if (tempMarker) { map.removeLayer(tempMarker); tempMarker = null; }
-    
-    document.getElementById('result-box').style.display = 'none';
-    document.getElementById('next-btn').style.display = 'none';
-    document.getElementById('action-btn').style.display = 'inline-block';
-    loadRound();
+  currentRound++;
+  turn = 'Första klass';
+
+  if (currentRound >= questions.length) {
+    endGame();
+    return;
+  }
+  loadRound();
 }
 
-function goToMenu() { location.reload(); }
-function getIcon(c) { return L.icon({ iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${c}.png`, iconSize: [25, 41] }); }
+function endGame() {
+  let msg = '';
+  if (mode === 'solo') {
+    msg = `Spelet slut! Du klarade alla ${questions.length} platser.`;
+  } else {
+    msg = score1 > score2
+      ? `Spelet slut! 🏆 Första Klass vinner med ${score1}–${score2}!`
+      : score2 > score1
+      ? `Spelet slut! 🏆 Dressinen vinner med ${score2}–${score1}!`
+      : `Spelet slut! Oavgjort ${score1}–${score2}!`;
+  }
+  document.getElementById('result-score').textContent = '🎉 Klart!';
+  document.getElementById('result-text').innerHTML = msg;
+  document.getElementById('result-box').classList.add('visible');
+  document.getElementById('next-btn').style.display = 'none';
+  document.getElementById('action-btn').style.display = 'none';
+}
 
-document.addEventListener("DOMContentLoaded", function() {
-    console.log("Spelet laddat!");
-    
-    // Om du har en knapp med ID 'menu-btn' i HTML, tvinga fram funktionen
-    let menuBtn = document.querySelector('[onclick="goToMenu()"]');
-    if(menuBtn) {
-        menuBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            location.reload();
-        });
-    }
+function goToMenu() {
+  stopTimer();
+  location.reload();
+}
+
+// ── Intern hjälp ───────────────────────────
+function clearTempMarker() {
+  if (tempMarker && map) { map.removeLayer(tempMarker); tempMarker = null; }
+}
+
+// ── Koppla knappar (kompletterar index.html) ─
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('btn-lag')?.addEventListener('click',          () => startGame('lag'));
+  document.getElementById('btn-solo')?.addEventListener('click',         () => startGame('solo'));
+  document.getElementById('btn-skip-video')?.addEventListener('click',   finishVideo);
+  document.getElementById('intro-video')?.addEventListener('ended',      finishVideo);
+  document.getElementById('btn-start-round')?.addEventListener('click',  startRound);
+  document.getElementById('action-btn')?.addEventListener('click',       processGuess);
+  document.getElementById('next-btn')?.addEventListener('click',         nextRound);
+  document.getElementById('menu-btn')?.addEventListener('click',         goToMenu);
 });
