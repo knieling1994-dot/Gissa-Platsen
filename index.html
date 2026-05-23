@@ -239,6 +239,69 @@
     /* Action row */
     .action-row { display: flex; gap: .75rem; flex-wrap: wrap; }
     #next-btn { display: none; }
+
+    /* ── WINNER OVERLAY ── */
+    #winner-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(26,26,46,.85);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    #winner-overlay.show { display: flex; }
+
+    .winner-card {
+      background: var(--paper);
+      border: 3px solid var(--ink);
+      box-shadow: 8px 8px 0 var(--ink);
+      padding: 3rem 3.5rem;
+      max-width: 480px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.2rem;
+      text-align: center;
+      animation: popIn .35s cubic-bezier(.175,.885,.32,1.275);
+    }
+    @keyframes popIn {
+      from { transform: scale(.7); opacity: 0; }
+      to   { transform: scale(1);  opacity: 1; }
+    }
+    .winner-trophy {
+      font-size: 4rem;
+      line-height: 1;
+    }
+    .winner-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(1.8rem, 6vw, 3rem);
+      color: var(--red);
+      line-height: 1;
+    }
+    .winner-subtitle {
+      font-size: .95rem;
+      color: var(--muted);
+    }
+    .winner-score {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2rem;
+      color: var(--ink);
+      letter-spacing: .05em;
+      border-top: 2px dashed var(--muted);
+      border-bottom: 2px dashed var(--muted);
+      padding: .6rem 2rem;
+      width: 100%;
+    }
+    .winner-btns {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: .5rem;
+    }
   </style>
 </head>
 <body>
@@ -298,6 +361,20 @@
       <button class="btn" id="action-btn">🔒 Lås In Gissning</button>
       <button class="btn secondary" id="next-btn">Nästa Mål →</button>
       <button class="btn ghost" id="menu-btn">↩ Huvudmeny</button>
+    </div>
+  </div>
+
+  <!-- WINNER OVERLAY -->
+  <div id="winner-overlay">
+    <div class="winner-card">
+      <div class="winner-trophy">🏆</div>
+      <div class="winner-title" id="winner-title">Lag vinner!</div>
+      <div class="winner-subtitle" id="winner-subtitle">Grattis till segrarna</div>
+      <div class="winner-score" id="winner-score">0 – 0</div>
+      <div class="winner-btns">
+        <button class="btn" id="btn-play-again">🔄 Spela igen</button>
+        <button class="btn ghost" id="btn-winner-menu">↩ Huvudmeny</button>
+      </div>
     </div>
   </div>
 
