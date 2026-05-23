@@ -1,39 +1,307 @@
 <!DOCTYPE html>
 <html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Närmast Platsen Vinner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    :root {
+      --ink:      #1a1a2e;
+      --paper:    #f5f0e8;
+      --cream:    #ede8dc;
+      --red:      #c0392b;
+      --gold:     #d4a843;
+      --track:    #5d4e37;
+      --muted:    #7a6f62;
+      --white:    #ffffff;
+      --shadow:   4px 4px 0px var(--ink);
+      --shadow-lg:6px 6px 0px var(--ink);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background-color: var(--paper);
+      background-image:
+        repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(26,26,46,.06) 39px, rgba(26,26,46,.06) 40px),
+        repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(26,26,46,.04) 39px, rgba(26,26,46,.04) 40px);
+      color: var(--ink);
+      min-height: 100vh;
+    }
+
+    /* ── Screen system ── */
+    .screen { display: none; }
+    .screen.active { display: flex; }
+
+    /* ── Buttons ── */
+    .btn {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.1rem;
+      letter-spacing: .08em;
+      color: var(--white);
+      background: var(--red);
+      border: 2.5px solid var(--ink);
+      box-shadow: var(--shadow);
+      padding: .55rem 1.4rem;
+      cursor: pointer;
+      transition: transform .1s, box-shadow .1s;
+    }
+    .btn:hover  { transform: translate(-2px,-2px); box-shadow: var(--shadow-lg); }
+    .btn:active { transform: translate(2px,2px);  box-shadow: 1px 1px 0 var(--ink); }
+    .btn.secondary { background: var(--track); }
+    .btn.ghost { background: transparent; color: var(--ink); }
+
+    /* ── MENU ── */
+    #menu {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      gap: 1rem;
+      padding: 2rem;
+    }
+    #menu h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(3rem, 10vw, 6rem);
+      text-align: center;
+      line-height: 1;
+      margin-bottom: .5rem;
+    }
+    #menu p {
+      color: var(--muted);
+      font-size: .9rem;
+      margin-bottom: 1rem;
+    }
+    .menu-card {
+      background: var(--cream);
+      border: 2.5px solid var(--ink);
+      box-shadow: var(--shadow-lg);
+      padding: 2rem 2.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      width: 100%;
+      max-width: 400px;
+    }
+    .divider {
+      display: flex; align-items: center; gap: .5rem;
+      color: var(--muted); font-size: .75rem; text-transform: uppercase; letter-spacing: .1em;
+    }
+    .divider::before, .divider::after { content:''; flex:1; height:1px; background:var(--muted); }
+
+    /* ── VIDEO ── */
+    #video-screen {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      gap: 1.5rem;
+      background: var(--ink);
+      padding: 2rem;
+    }
+    #video-screen video {
+      max-width: 860px;
+      width: 100%;
+      border: 3px solid var(--gold);
+    }
+
+    /* ── TURN ── */
+    #turn-screen {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      gap: 1.5rem;
+      padding: 2rem;
+    }
+    #turn-screen h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(2rem, 8vw, 5rem);
+      color: var(--red);
+      text-align: center;
+    }
+    .turn-label {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: .85rem;
+      letter-spacing: .25em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    /* ── GAME AREA ── */
+    #game-area {
+      flex-direction: column;
+      min-height: 100vh;
+      padding: 1rem;
+      gap: 1rem;
+      max-width: 1100px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* Header */
+    .game-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--ink);
+      color: var(--white);
+      padding: .6rem 1.2rem;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .game-header .logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.2rem;
+      letter-spacing: .1em;
+      color: var(--gold);
+    }
+    #score-board {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1rem;
+      letter-spacing: .05em;
+    }
+    #timer {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.4rem;
+      color: var(--gold);
+      min-width: 70px;
+      text-align: right;
+    }
+    #timer.urgent { color: var(--red); animation: pulse .6s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    /* Play panels */
+    .play-area {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      flex: 1;
+    }
+    @media (max-width: 700px) { .play-area { grid-template-columns: 1fr; } }
+
+    .panel {
+      border: 2.5px solid var(--ink);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      position: relative;
+      background: var(--cream);
+      min-height: 300px;
+    }
+    .panel-label {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: .75rem;
+      letter-spacing: .18em;
+      background: var(--ink);
+      color: var(--gold);
+      padding: .3rem .8rem;
+      position: absolute;
+      top: 0; left: 0;
+      z-index: 10;
+    }
+    #game-image {
+      width: 100%;
+      height: 100%;
+      min-height: 300px;
+      object-fit: cover;
+      display: block;
+    }
+    #map {
+      width: 100%;
+      height: 100%;
+      min-height: 300px;
+    }
+
+    /* Result */
+    #result-box {
+      background: var(--cream);
+      border: 2.5px solid var(--ink);
+      box-shadow: var(--shadow);
+      padding: 1rem 1.4rem;
+      display: none;
+      gap: 1rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    #result-box.visible { display: flex; }
+    #result-score {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.6rem;
+      color: var(--red);
+    }
+    #result-text { font-size: .9rem; color: var(--muted); flex: 1; line-height: 1.6; }
+
+    /* Action row */
+    .action-row { display: flex; gap: .75rem; flex-wrap: wrap; }
+    #next-btn { display: none; }
+  </style>
 </head>
 <body>
-    <div id="menu">
-        <h1 class="comic-title">Närmast Platsen Vinner</h1>
-        <button class="comic-btn" onclick="startGame('lag')">Första Klass mot Dressinen</button>
-        <button class="comic-btn" onclick="startGame('solo')">Spela Solo</button>
+
+  <!-- MENU -->
+  <div id="menu" class="screen active">
+    <h1>Närmast Platsen<br>Vinner</h1>
+    <p>Gissa var i världen — närmast vinner</p>
+    <div class="menu-card">
+      <button class="btn" id="btn-lag">⚔ Första Klass mot Dressinen</button>
+      <div class="divider">eller</div>
+      <button class="btn secondary" id="btn-solo">🗺 Spela Solo</button>
     </div>
-    <div id="video-screen" style="display:none;">
-        <video id="intro-video" controls>
-            <source src="intro.mp4" type="video/mp4">
-        </video>
-        <button class="comic-btn" style="position:absolute; bottom:50px;" onclick="finishVideo()">Hoppa över</button>
+  </div>
+
+  <!-- VIDEO -->
+  <div id="video-screen" class="screen">
+    <video id="intro-video" controls>
+      <source src="intro.mp4" type="video/mp4" />
+      Din webbläsare stöder inte video.
+    </video>
+    <button class="btn ghost" id="btn-skip-video">Hoppa över →</button>
+  </div>
+
+  <!-- TURN -->
+  <div id="turn-screen" class="screen">
+    <span class="turn-label">Nu spelar</span>
+    <h1 id="turn-text">Lag X</h1>
+    <button class="btn" id="btn-start-round">Starta Tur</button>
+  </div>
+
+  <!-- GAME -->
+  <div id="game-area" class="screen">
+    <div class="game-header">
+      <span class="logo">NPV</span>
+      <div id="score-board">Första Klass: 0 | Dressinen: 0</div>
+      <div id="timer">Tid: 15</div>
     </div>
-    <div id="turn-screen" style="display:none;">
-        <h1 class="comic-title" id="turn-text"></h1>
-        <button class="comic-btn" onclick="startRound()">Starta Tur</button>
-    </div>
-    <div id="game-area">
-        <div class="top-container">
-            <img id="game-image" src="" alt="Destination">
-            <div id="score-stats">
-                <div id="score-board">Första Klass: 0 | Dressinen: 0</div>
-                <div id="timer">Tid: 15</div>
-            </div>
-        </div>
-        
+
+    <div class="play-area">
+      <div class="panel">
+        <span class="panel-label">📍 Var är detta?</span>
+        <img id="game-image" src="" alt="Destination att gissa" />
+      </div>
+      <div class="panel">
+        <span class="panel-label">🗺 Karta</span>
         <div id="map"></div>
-        <div id="result-box"></div>
-        
-        <button id="action-btn" class="comic-btn" onclick="processGuess()">Lås In Gissning</button>
-        <button id="next-btn" class="comic-btn" style="display:none;" onclick="nextRound()">Nästa Mål</button>
-        <button class="comic-btn" style="background:#7f8c8d;" onclick="goToMenu()">Till Huvudmeny</button>
+      </div>
     </div>
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <script src="game.js"></script>
+
+    <div id="result-box">
+      <div id="result-score">— km</div>
+      <div id="result-text">Resultat visas här efter gissning.</div>
+    </div>
+
+    <div class="action-row">
+      <button class="btn" id="action-btn">🔒 Lås In Gissning</button>
+      <button class="btn secondary" id="next-btn">Nästa Mål →</button>
+      <button class="btn ghost" id="menu-btn">↩ Huvudmeny</button>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="game.js"></script>
 </body>
 </html>
