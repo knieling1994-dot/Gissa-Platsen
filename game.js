@@ -1,20 +1,21 @@
-
 /* ═══════════════════════════════════════════
    NÄRMAST PLATSEN VINNER — game.js
 ═══════════════════════════════════════════ */
- 
+
 'use strict';
- 
+
+const WIN_SCORE = 3; // Först till 3 vinner matchen
+
 // ── State ──────────────────────────────────
-let mode, turn = 'Första Klass';   // OBS: stort K, matchar jämförelserna
+let mode, turn = 'Första Klass';
 let score1 = 0, score2 = 0;
 let currentRound = 0;
 let timer = null, timeLeft = 15;
 let redGuess = null, blueGuess = null;
 let tempMarker = null, roundMarkers = [], map = null;
 let questions = [];
- 
-// ── Frågedatabas med Wikimedia Commons-URL:er ──
+
+// ── Frågedatabas ───────────────────────────
 const questionsData = [
   { name: 'Eiffeltornet',        lat:  48.8584, lng:   2.2945, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a8/Tour_Eiffel_Wikimedia_Commons.jpg/800px-Tour_Eiffel_Wikimedia_Commons.jpg' },
   { name: 'Berlinmuren',         lat:  52.5167, lng:  13.3775, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Berlinermauer.jpg/800px-Berlinermauer.jpg' },
@@ -43,14 +44,14 @@ const questionsData = [
   { name: 'Hagia Sofia',         lat:  41.0086, lng:  28.9802, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/Hagia_Sophia_Mars_2013.jpg/800px-Hagia_Sophia_Mars_2013.jpg' },
   { name: 'Versailles',          lat:  48.8049, lng:   2.1204, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/31/Palace_of_Versailles%2C_chateau%2C_vue_du_ciel.jpg/800px-Palace_of_Versailles%2C_chateau%2C_vue_du_ciel.jpg' },
 ];
- 
+
 // ── Skärmhantering ─────────────────────────
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   if (id === 'game-area' && map) setTimeout(() => map.invalidateSize(), 100);
 }
- 
+
 // ── Markör-ikon ────────────────────────────
 function getIcon(color) {
   return L.icon({
@@ -60,14 +61,14 @@ function getIcon(color) {
     popupAnchor:[1, -34],
   });
 }
- 
+
 // ── Formatera avstånd ──────────────────────
 function fmt(km) {
   if (km === null) return 'Missat';
   return km < 1 ? Math.round(km * 1000) + ' m' : Math.round(km) + ' km';
 }
- 
-// ── Timer med nedräkning 5..0 ──────────────
+
+// ── Timer ──────────────────────────────────
 function startTimer() {
   timeLeft = 15;
   updateTimerDisplay();
@@ -81,25 +82,22 @@ function startTimer() {
     }
   }, 1000);
 }
- 
+
 function updateTimerDisplay() {
   const el = document.getElementById('timer');
   if (timeLeft > 5) {
     el.textContent = `Tid: ${timeLeft}`;
     el.classList.remove('urgent');
   } else if (timeLeft > 0) {
-    // Stor nedräkning 5→1
     el.textContent = `⚠ ${timeLeft}`;
     el.classList.add('urgent');
-    // Kort ljudpip via Web Audio om webbläsaren tillåter
     beep();
   } else {
     el.textContent = '⚠ 0';
     el.classList.add('urgent');
   }
 }
- 
-// Enkel beep via Web Audio API
+
 let audioCtx = null;
 function beep() {
   try {
@@ -111,13 +109,13 @@ function beep() {
     gain.gain.setValueAtTime(.3, audioCtx.currentTime);
     gain.gain.exponentialRampToValueAtTime(.001, audioCtx.currentTime + .15);
     osc.start(); osc.stop(audioCtx.currentTime + .15);
-  } catch(e) {} // tyst om webbläsaren blockerar
+  } catch(e) {}
 }
- 
+
 function stopTimer() {
   if (timer) { clearInterval(timer); timer = null; }
 }
- 
+
 // ── Karta ──────────────────────────────────
 function initMap() {
   if (map) return;
@@ -127,25 +125,26 @@ function initMap() {
   }).addTo(map);
   map.on('click', onMapClick);
 }
- 
+
 function onMapClick(e) {
   if (tempMarker) map.removeLayer(tempMarker);
-  // FIX: jämför med exakt samma sträng som används överallt
   const color = mode === 'solo' ? 'green' : (turn === 'Första Klass' ? 'red' : 'blue');
   tempMarker = L.marker(e.latlng, { icon: getIcon(color) }).addTo(map);
 }
- 
+
 // ══════════════════════════════════════════
 //  SPELFLÖDE
 // ══════════════════════════════════════════
- 
+
 function startGame(selectedMode) {
   mode = selectedMode;
   score1 = 0; score2 = 0;
   currentRound = 0;
-  turn = 'Första Klass';   // konsekvent stort K
+  turn = 'Första Klass';
   questions = [...questionsData].sort(() => Math.random() - 0.5);
- 
+  // Dölj overlay om den är öppen
+  document.getElementById('winner-overlay').classList.remove('show');
+
   if (mode === 'lag') {
     showScreen('video-screen');
     const vid = document.getElementById('intro-video');
@@ -154,149 +153,156 @@ function startGame(selectedMode) {
     loadRound();
   }
 }
- 
+
 function finishVideo() {
   const vid = document.getElementById('intro-video');
   if (vid) vid.pause();
   loadRound();
 }
- 
+
 function loadRound() {
   stopTimer();
   clearTempMarker();
   roundMarkers.forEach(m => map && map.removeLayer(m));
   roundMarkers = [];
   redGuess = null; blueGuess = null;
- 
+
   document.getElementById('result-box').classList.remove('visible');
   document.getElementById('action-btn').style.display = 'inline-block';
   document.getElementById('next-btn').style.display   = 'none';
- 
+
   document.getElementById('turn-text').textContent =
     mode === 'solo' ? 'Redo att gissa?' : `${turn}, dags att resa!`;
   showScreen('turn-screen');
 }
- 
+
 function startRound() {
   showScreen('game-area');
   initMap();
   map.setView([20, 0], 2);
- 
+
   const q = questions[currentRound % questions.length];
   const img = document.getElementById('game-image');
   img.alt = q.name;
-  // Direkt Wikimedia-URL — ingen redirect
   img.src = q.img;
   img.onerror = () => {
     img.src = `https://placehold.co/600x400/1a1a2e/f5f0e8?text=${encodeURIComponent(q.name)}`;
   };
- 
+
   if (mode === 'lag') startTimer();
 }
- 
+
 function processGuess() {
   stopTimer();
- 
-  // FIX: om timern tog slut och tempMarker finns på kartan — spara den ändå
   const guess = tempMarker ? tempMarker.getLatLng() : null;
- 
+
   if (mode === 'solo') {
     redGuess = guess;
-    if (tempMarker) {
-      tempMarker.setIcon(getIcon('green'));
-      roundMarkers.push(tempMarker);
-      tempMarker = null;
-    }
+    if (tempMarker) { tempMarker.setIcon(getIcon('green')); roundMarkers.push(tempMarker); tempMarker = null; }
     showResults();
- 
-  } else if (turn === 'Första Klass') {   // FIX: stort K
+
+  } else if (turn === 'Första Klass') {
     redGuess = guess;
     if (tempMarker) {
       tempMarker.setIcon(getIcon('red'));
-      tempMarker.setOpacity(0);           // Dölj för lag 2
+      tempMarker.setOpacity(0);
       roundMarkers.push(tempMarker);
       tempMarker = null;
     }
     turn = 'Dressinen';
     loadRound();
- 
+
   } else {
     blueGuess = guess;
-    if (tempMarker) {
-      tempMarker.setIcon(getIcon('blue'));
-      roundMarkers.push(tempMarker);
-      tempMarker = null;
-    }
+    if (tempMarker) { tempMarker.setIcon(getIcon('blue')); roundMarkers.push(tempMarker); tempMarker = null; }
     showResults();
   }
 }
- 
+
 function showResults() {
   roundMarkers.forEach(m => m.setOpacity(1));
- 
+
   const q = questions[currentRound % questions.length];
   const correct = L.marker([q.lat, q.lng], { icon: getIcon('gold') }).addTo(map);
   correct.bindPopup(`<strong>${q.name}</strong>`).openPopup();
   roundMarkers.push(correct);
- 
+
   const dist1 = redGuess  ? map.distance(redGuess,  [q.lat, q.lng]) / 1000 : null;
   const dist2 = blueGuess ? map.distance(blueGuess, [q.lat, q.lng]) / 1000 : null;
- 
+
   let resultText = '';
   if (mode === 'solo') {
     resultText = `Din gissning var <strong>${fmt(dist1)}</strong> från målet.`;
   } else {
-    let winner = '';
+    let roundWinner = '';
     if (dist1 !== null || dist2 !== null) {
-      if      (dist1 === null)  { score2++; winner = '🏆 Dressinen vann rundan! (FK missade)'; }
-      else if (dist2 === null)  { score1++; winner = '🏆 Första Klass vann rundan! (D missade)'; }
-      else if (dist1 < dist2)   { score1++; winner = '🏆 Första Klass vann rundan!'; }
-      else if (dist2 < dist1)   { score2++; winner = '🏆 Dressinen vann rundan!'; }
-      else                      { winner = '🤝 Oavgjort!'; }
+      if      (dist1 === null)  { score2++; roundWinner = '🏆 Dressinen vann rundan! (FK missade)'; }
+      else if (dist2 === null)  { score1++; roundWinner = '🏆 Första Klass vann rundan! (D missade)'; }
+      else if (dist1 < dist2)   { score1++; roundWinner = '🏆 Första Klass vann rundan!'; }
+      else if (dist2 < dist1)   { score2++; roundWinner = '🏆 Dressinen vann rundan!'; }
+      else                      { roundWinner = '🤝 Oavgjort!'; }
     }
     resultText =
       `Första Klass: <strong>${fmt(dist1)}</strong> &nbsp;|&nbsp; Dressinen: <strong>${fmt(dist2)}</strong><br>
-       <span style="color:var(--gold)">${winner}</span>`;
+       <span style="color:var(--gold)">${roundWinner}</span>`;
     document.getElementById('score-board').textContent =
       `Första Klass: ${score1} | Dressinen: ${score2}`;
   }
- 
+
   document.getElementById('result-score').innerHTML = `📍 ${q.name}`;
   document.getElementById('result-text').innerHTML  = resultText;
   document.getElementById('result-box').classList.add('visible');
   document.getElementById('action-btn').style.display = 'none';
-  document.getElementById('next-btn').style.display   = 'inline-block';
+
+  // Byt knapptext om matchen är avgjord
+  const matchOver = mode === 'lag' && (score1 >= WIN_SCORE || score2 >= WIN_SCORE);
+  const btn = document.getElementById('next-btn');
+  btn.textContent = matchOver ? '🏆 Se vinnaren →' : 'Nästa Mål →';
+  btn.style.display = 'inline-block';
 }
- 
+
 function nextRound() {
+  // Kolla om matchen är avgjord innan vi går vidare
+  if (mode === 'lag' && (score1 >= WIN_SCORE || score2 >= WIN_SCORE)) {
+    showWinnerOverlay();
+    return;
+  }
+
   currentRound++;
-  turn = 'Första Klass';   // FIX: stort K
-  if (currentRound >= questions.length) { endGame(); return; }
+  turn = 'Första Klass';
+  if (currentRound >= questions.length) {
+    // Frågorna tog slut utan vinnare — visa bäst-av-resultatet
+    showWinnerOverlay();
+    return;
+  }
   loadRound();
 }
- 
-function endGame() {
-  const msg = mode === 'solo'
-    ? `Spelet slut! Du klarade alla ${questions.length} platser.`
-    : score1 > score2
-      ? `Spelet slut! 🏆 Första Klass vinner med ${score1}–${score2}!`
-      : score2 > score1
-        ? `Spelet slut! 🏆 Dressinen vinner med ${score2}–${score1}!`
-        : `Spelet slut! Oavgjort ${score1}–${score2}!`;
- 
-  document.getElementById('result-score').textContent = '🎉 Klart!';
-  document.getElementById('result-text').innerHTML    = msg;
-  document.getElementById('result-box').classList.add('visible');
-  document.getElementById('next-btn').style.display   = 'none';
-  document.getElementById('action-btn').style.display = 'none';
+
+function showWinnerOverlay() {
+  stopTimer();
+  let title, subtitle;
+  if (score1 > score2) {
+    title    = 'Första Klass vinner!';
+    subtitle = `Grattis! Matchen vanns med ${score1}–${score2}. 🎉`;
+  } else if (score2 > score1) {
+    title    = 'Dressinen vinner!';
+    subtitle = `Grattis! Matchen vanns med ${score2}–${score1}. 🎉`;
+  } else {
+    title    = 'Oavgjort!';
+    subtitle = 'Ingen vann matchen denna gång.';
+  }
+  document.getElementById('winner-title').textContent    = title;
+  document.getElementById('winner-subtitle').textContent = subtitle;
+  document.getElementById('winner-score').textContent    = `Första Klass ${score1} – ${score2} Dressinen`;
+  document.getElementById('winner-overlay').classList.add('show');
 }
- 
+
 function goToMenu() { stopTimer(); location.reload(); }
- 
+
 function clearTempMarker() {
   if (tempMarker && map) { map.removeLayer(tempMarker); tempMarker = null; }
 }
- 
+
 // ── Knapp-lyssnare ─────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-lag')?.addEventListener('click',         () => startGame('lag'));
@@ -307,4 +313,8 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('action-btn')?.addEventListener('click',      processGuess);
   document.getElementById('next-btn')?.addEventListener('click',        nextRound);
   document.getElementById('menu-btn')?.addEventListener('click',        goToMenu);
+
+  // Overlay-knappar
+  document.getElementById('btn-play-again')?.addEventListener('click',  () => startGame('lag'));
+  document.getElementById('btn-winner-menu')?.addEventListener('click', goToMenu);
 });
