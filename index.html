@@ -3,45 +3,46 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NPV - Multiplayer</title>
+  <title>Närmast Platsen Vinner</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <style>
-    /* Behåll din befintliga CSS från förra koden men se till att knappar har z-index */
-    body { font-family: sans-serif; background: #f5f0e8; }
-    .screen { display: none; }
-    .screen.active { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
-    #game-area { display: none; padding: 10px; }
-    .panel { border: 2px solid #1a1a2e; margin-bottom: 10px; background: white; }
+    body { font-family: sans-serif; background: #f5f0e8; margin: 0; }
+    .screen { display: none; height: 100vh; flex-direction: column; align-items: center; justify-content: center; }
+    .screen.active { display: flex; }
+    .btn { padding: 15px 30px; font-size: 1.2rem; cursor: pointer; margin: 10px; background: #c0392b; color: white; border: none; }
+    #game-area { padding: 10px; height: 100vh; }
     #map { height: 300px; width: 100%; }
-    #game-image { width: 100%; height: auto; }
-    .btn { padding: 15px 30px; font-size: 1.2rem; cursor: pointer; margin: 10px; }
-    #admin-bar { display: none; position: fixed; bottom: 0; background: #1a1a2e; color: white; width: 100%; padding: 10px; justify-content: center; gap: 10px; }
+    #game-image { width: 100%; max-height: 250px; object-fit: cover; }
+    #admin-bar { display: none; position: fixed; bottom: 0; width: 100%; background: #1a1a2e; padding: 10px; justify-content: center; gap: 10px; }
+    #result-box { display: none; padding: 10px; background: #ede8dc; margin-top: 10px; }
+    #result-box.visible { display: block; }
   </style>
 </head>
 <body>
 
   <div id="menu" class="screen active">
-    <h1>Närmast Platsen Vinner</h1>
+    <h1>Närmast Platsen</h1>
     <button class="btn" onclick="joinGame('Admin')">💻 Spelmästare</button>
-    <button class="btn" onclick="joinGame('Första Klass')">📱 Spela: Första Klass</button>
-    <button class="btn" onclick="joinGame('Dressinen')">📱 Spela: Dressinen</button>
+    <button class="btn" onclick="joinGame('Första Klass')">📱 Första Klass</button>
+    <button class="btn" onclick="joinGame('Dressinen')">📱 Dressinen</button>
   </div>
 
   <div id="game-area" class="screen">
     <div id="role-indicator">Laddar...</div>
-    <div class="panel"><img id="game-image" src="" alt="Resmål"></div>
-    <div class="panel"><div id="map"></div></div>
-    <div id="result-box" style="display:none; padding:10px; background:#ede8dc;">
-      <div id="result-text">Väntar...</div>
+    <img id="game-image" src="" alt="Resmål">
+    <div id="map"></div>
+    <div id="result-box">
+      <div id="result-text">Väntar på start...</div>
     </div>
     <button id="action-btn" class="btn">🔒 Lås in gissning</button>
   </div>
 
   <div id="admin-bar">
-    <button onclick="adminNextRound()">Starta Runda</button>
-    <button id="admin-reveal" onclick="adminReveal()" style="display:none;">Visa Resultat</button>
+    <button onclick="adminPrepareRound()">Förbered nästa</button>
+    <button id="admin-next" onclick="adminSendToPlayers()" style="display:none;">Skicka till mobiler</button>
+    <button id="admin-reveal" onclick="adminReveal()" style="display:none; background:gold;">Visa Resultat!</button>
   </div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
