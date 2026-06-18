@@ -17,6 +17,65 @@ const firebaseConfig = {
   measurementId: "G-HHBL24Z2FN"
 };
 
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const gameRef = db.ref('npv_game');
+
+let myRole = '', map = null, tempMarker = null;
+
+function joinGame(role) {
+    myRole = role;
+    showScreen('game-area');
+    if (role === 'Admin') document.getElementById('admin-bar').style.display = 'flex';
+    
+    // Lyssna på databasen
+    gameRef.on('value', (snap) => {
+        let data = snap.val();
+        if(!data) return;
+        
+        // Uppdatera bild (samma för alla!)
+        if(data.question) {
+            document.getElementById('game-image').src = data.question.img;
+        }
+        
+        // Om admin trycker "Visa resultat"
+        if(data.state === 'results') {
+            showResultsUI(data);
+        }
+    });
+}
+
+function adminNextRound() {
+    // Slumpa en fråga och skriv till Firebase
+    const q = questionsData[Math.floor(Math.random() * questionsData.length)];
+    gameRef.update({ state: 'guessing', question: q, guesses: null });
+}
+
+function adminReveal() {
+    gameRef.update({ state: 'results' });
+}
+
+// När spelaren klickar "Lås in"
+document.getElementById('action-btn').addEventListener('click', () => {
+    const pos = tempMarker.getLatLng();
+    gameRef.child('guesses/' + myRole).set({ lat: pos.lat, lng: pos.lng });
+});
+
+function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    if (!map) initMap();
+}
+
+function initMap() {
+    map = L.map('map').setView([20, 0], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    map.on('click', (e) => {
+        if (myRole === 'Admin') return;
+        if(tempMarker) map.removeLayer(tempMarker);
+        tempMarker = L.marker(e.latlng).addTo(map);
+    });
+}
 // Starta Firebase
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
