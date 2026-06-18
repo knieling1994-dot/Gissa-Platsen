@@ -3,117 +3,47 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Närmast Platsen Vinner</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <title>NPV - Multiplayer</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <style>
-    :root {
-      --ink: #1a1a2e; --paper: #f5f0e8; --cream: #ede8dc;
-      --red: #c0392b; --gold: #d4a843; --track: #5d4e37;
-      --muted: #7a6f62; --white: #ffffff;
-      --shadow: 4px 4px 0px var(--ink);
-    }
-
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'DM Sans', sans-serif; background-color: var(--paper); color: var(--ink); min-height: 100vh; overflow-x: hidden; }
-
+    /* Behåll din befintliga CSS från förra koden men se till att knappar har z-index */
+    body { font-family: sans-serif; background: #f5f0e8; }
     .screen { display: none; }
-    .screen.active { display: flex; }
-
-    .btn {
-      font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; letter-spacing: .08em;
-      color: var(--white); background: var(--red); border: 2.5px solid var(--ink);
-      box-shadow: var(--shadow); padding: .6rem 1.4rem; cursor: pointer;
-      touch-action: manipulation; -webkit-tap-highlight-color: transparent; position: relative; z-index: 100;
-    }
-    @media (hover: hover) { .btn:hover { transform: translate(-2px,-2px); box-shadow: 6px 6px 0px var(--ink); } }
-    .btn:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 var(--ink); }
-    .btn.secondary { background: var(--track); }
-    .btn.ghost { background: transparent; color: var(--ink); box-shadow: none; border-color: transparent; }
-
-    /* ── MENU ── */
-    #menu, #turn-screen { flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; gap: 1.5rem; padding: 2rem; }
-    #menu h1, #turn-screen h1 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(3rem, 10vw, 5rem); text-align: center; color: var(--red); }
-    .menu-card { background: var(--cream); border: 2px solid var(--ink); box-shadow: var(--shadow); padding: 2.5rem; display: flex; flex-direction: column; gap: 1rem; width: 100%; max-width: 400px; }
-
-    /* ── GAME AREA ── */
-    #game-area { flex-direction: column; min-height: 100vh; padding: 1rem; gap: 1rem; max-width: 1000px; margin: 0 auto; width: 100%; padding-bottom: 6rem; }
-    .game-header { display: flex; justify-content: space-between; background: var(--ink); color: var(--white); padding: .8rem 1.2rem; font-family: 'Bebas Neue', sans-serif; border: 2px solid var(--ink); }
-
-    .play-area { display: flex; flex-direction: column; gap: 1rem; flex: 1; min-height: 0; }
-    .panel { border: 2px solid var(--ink); box-shadow: var(--shadow); background: var(--cream); display: flex; flex-direction: column; overflow: hidden; position: relative; }
-    .panel-label { position: absolute; top: 0; left: 0; background: var(--ink); color: var(--gold); padding: .3rem .8rem; font-family: 'Bebas Neue', sans-serif; font-size: .7rem; z-index: 10; }
-    
-    #game-image { width: 100%; height: auto; aspect-ratio: 16/9; object-fit: cover; display: block; }
-    #map { width: 100%; flex: 1; min-height: 300px; z-index: 1; }
-
-    #result-box { background: var(--cream); border: 2px solid var(--ink); padding: 1rem 1.4rem; display: none; gap: 1rem; align-items: center; }
-    #result-box.visible { display: flex; }
-    #result-score { font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; color: var(--red); }
-    #result-text { font-size: .9rem; color: var(--muted); line-height: 1.4; flex: 1; }
-
-    .action-row { display: flex; gap: .75rem; flex-wrap: wrap; margin-top: auto; justify-content: center; }
-
-    /* ── ADMIN CONTROLS ── */
-    #admin-bar {
-      display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: var(--ink);
-      padding: 15px; z-index: 10000; box-shadow: 0 -4px 10px rgba(0,0,0,0.5); justify-content: center; gap: 10px;
-    }
+    .screen.active { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
+    #game-area { display: none; padding: 10px; }
+    .panel { border: 2px solid #1a1a2e; margin-bottom: 10px; background: white; }
+    #map { height: 300px; width: 100%; }
+    #game-image { width: 100%; height: auto; }
+    .btn { padding: 15px 30px; font-size: 1.2rem; cursor: pointer; margin: 10px; }
+    #admin-bar { display: none; position: fixed; bottom: 0; background: #1a1a2e; color: white; width: 100%; padding: 10px; justify-content: center; gap: 10px; }
   </style>
 </head>
 <body>
 
   <div id="menu" class="screen active">
     <h1>Närmast Platsen Vinner</h1>
-    <div class="menu-card">
-      <button class="btn" style="background:var(--gold); color:black;" onclick="joinGame('Admin')">💻 Spelmästare (Styr Spelet)</button>
-      <hr style="border: 1px dashed var(--muted); margin: 10px 0;">
-      <button class="btn" onclick="joinGame('Första Klass')">📱 Spela: Första Klass</button>
-      <button class="btn secondary" onclick="joinGame('Dressinen')">📱 Spela: Dressinen</button>
-    </div>
-  </div>
-
-  <div id="turn-screen" class="screen">
-    <h1 id="turn-text">Laddar...</h1>
+    <button class="btn" onclick="joinGame('Admin')">💻 Spelmästare</button>
+    <button class="btn" onclick="joinGame('Första Klass')">📱 Spela: Första Klass</button>
+    <button class="btn" onclick="joinGame('Dressinen')">📱 Spela: Dressinen</button>
   </div>
 
   <div id="game-area" class="screen">
-    <div class="game-header">
-      <span id="role-indicator">Role</span>
-      <div id="score-board">FK: 0 | D: 0</div>
+    <div id="role-indicator">Laddar...</div>
+    <div class="panel"><img id="game-image" src="" alt="Resmål"></div>
+    <div class="panel"><div id="map"></div></div>
+    <div id="result-box" style="display:none; padding:10px; background:#ede8dc;">
+      <div id="result-text">Väntar...</div>
     </div>
-
-    <div class="play-area">
-      <div class="panel">
-        <span class="panel-label">📍 Var är detta?</span>
-        <img id="game-image" src="" alt="Resmål" />
-      </div>
-      <div class="panel">
-        <span class="panel-label">🗺 Karta</span>
-        <div id="map"></div>
-      </div>
-    </div>
-
-    <div id="result-box">
-      <div id="result-score">📍</div>
-      <div id="result-text">Status...</div>
-    </div>
-
-    <div class="action-row">
-      <button class="btn" id="action-btn">🔒 Lås In Gissning</button>
-      <button class="btn ghost" onclick="location.reload()">Lämna</button>
-    </div>
+    <button id="action-btn" class="btn">🔒 Lås in gissning</button>
   </div>
 
   <div id="admin-bar">
-    <button class="btn" id="admin-next" onclick="adminNextRound()">Starta Mål 1</button>
-    <button class="btn" id="admin-reveal" onclick="adminReveal()" style="display:none; background:var(--gold); color:black;">Visa Resultat!</button>
+    <button onclick="adminNextRound()">Starta Runda</button>
+    <button id="admin-reveal" onclick="adminReveal()" style="display:none;">Visa Resultat</button>
   </div>
 
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="game.js"></script>
 </body>
