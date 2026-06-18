@@ -1,22 +1,32 @@
 /* ═══════════════════════════════════════════
-   NÄRMAST PLATSEN VINNER — game.js
-   Uppdaterad med stabil bildhämtning
+   NÄRMAST PLATSEN VINNER — MULTIPLAYER (Firebase)
 ═══════════════════════════════════════════ */
 
 'use strict';
 
-const WIN_SCORE = 3; // Först till 3 vinner matchen
+// ── Firebase Konfiguration ──
+const firebaseConfig = {
+  apiKey: "AIzaSyDCiaoCbkDHPMB2qPSl1qT8pQPswjQvqO0",
+  authDomain: "npv-spel.firebaseapp.com",
+  databaseURL: "https://npv-spel-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "npv-spel",
+  storageBucket: "npv-spel.firebasestorage.app",
+  messagingSenderId: "612627186241",
+  appId: "1:612627186241:web:12c490f00351e116f6fcc0",
+  measurementId: "G-HHBL24Z2FN"
+};
 
-// ── State ──────────────────────────────────
-let mode, turn = 'Första Klass';
-let score1 = 0, score2 = 0;
-let currentRound = 0;
-let timer = null, timeLeft = 15;
-let redGuess = null, blueGuess = null;
-let tempMarker = null, roundMarkers = [], map = null;
+// Starta Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const gameRef = db.ref('npv_game');
+
+// ── Globala Variabler ──
+let myRole = '';
+let map = null, tempMarker = null, roundMarkers = [];
 let questions = [];
 
-// ── Frågedatabas (Koordinater) ───────────────────────────
+// ── Frågedatabas ──
 const questionsData = [
   { name: 'Eiffeltornet', lat: 48.8584, lng: 2.2945 },
   { name: 'Berlinmuren', lat: 52.5167, lng: 13.3775 },
@@ -27,282 +37,245 @@ const questionsData = [
   { name: 'Kinesiska muren', lat: 40.4319, lng: 116.5704 },
   { name: 'Frihetsgudinnan', lat: 40.6892, lng: -74.0445 },
   { name: 'Taj Mahal', lat: 27.1751, lng: 78.0421 },
-  { name: 'Akropolis', lat: 37.9715, lng: 23.7267 },
-  { name: 'Petra', lat: 30.3285, lng: 35.4444 },
-  { name: 'Sagrada Familia', lat: 41.4036, lng: 2.1744 },
-  { name: 'Mount Everest', lat: 27.9881, lng: 86.9250 },
-  { name: 'Burj Khalifa', lat: 25.1972, lng: 55.2744 },
-  { name: 'Stonehenge', lat: 51.1789, lng: -1.8262 },
-  { name: 'Chichén Itzá', lat: 20.6843, lng: -88.5678 },
-  { name: 'Sydney Opera House', lat: -33.8568, lng: 151.2153 },
-  { name: 'Angkor Wat', lat: 13.4125, lng: 103.8670 },
-  { name: 'Alhambra', lat: 37.1760, lng: -3.5881 },
-  { name: 'Christ the Redeemer', lat: -22.9519, lng: -43.2105 },
-  { name: 'Vatikanstaten', lat: 41.9029, lng: 12.4534 },
-  { name: 'Hollywoodskylten', lat: 34.1341, lng:-118.3215 },
-  { name: 'Mont Saint-Michel', lat: 48.6361, lng: -1.5115 },
-  { name: 'Golden Gate-bron', lat: 37.8199, lng:-122.4783 },
-  { name: 'Hagia Sofia', lat: 41.0086, lng: 28.9802 },
-  { name: 'Versailles', lat: 48.8049, lng: 2.1204 },
+  { name: 'Akropolis', lat: 37.9715, lng: 23.7267 }
 ];
 
-// ── Skärmhantering ─────────────────────────
+// ── Hjälpfunktioner ──
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  // Uppdaterar kartan så att den ritar om sig korrekt vid layoutändringar
   if (id === 'game-area' && map) setTimeout(() => map.invalidateSize(), 100);
 }
 
-// ── Markör-ikon ────────────────────────────
 function getIcon(color) {
   return L.icon({
     iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${color}.png`,
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor:[1, -34],
+    iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34],
   });
 }
 
-// ── Formatera avstånd ──────────────────────
 function fmt(km) {
   if (km === null) return 'Missat';
   return km < 1 ? Math.round(km * 1000) + ' m' : Math.round(km) + ' km';
 }
 
-// ── Timer ──────────────────────────────────
-function startTimer() {
-  timeLeft = 15;
-  updateTimerDisplay();
-  timer = setInterval(() => {
-    timeLeft--;
-    updateTimerDisplay();
-    if (timeLeft <= 0) {
-      clearInterval(timer);
-      timer = null;
-      processGuess();
-    }
-  }, 1000);
-}
-
-function updateTimerDisplay() {
-  const el = document.getElementById('timer');
-  if (timeLeft > 5) {
-    el.textContent = `Tid: ${timeLeft}`;
-    el.classList.remove('urgent');
-  } else if (timeLeft > 0) {
-    el.textContent = `⚠ ${timeLeft}`;
-    el.classList.add('urgent');
-  } else {
-    el.textContent = '⚠ 0';
-    el.classList.add('urgent');
-  }
-}
-
-function stopTimer() {
-  if (timer) { clearInterval(timer); timer = null; }
-}
-
-// ── Karta ──────────────────────────────────
 function initMap() {
   if (map) return;
   map = L.map('map', { minZoom: 2 }).setView([20, 0], 2);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap',
-  }).addTo(map);
-  map.on('click', onMapClick);
-}
-
-function onMapClick(e) {
-  if (tempMarker) map.removeLayer(tempMarker);
-  const color = mode === 'solo' ? 'green' : (turn === 'Första Klass' ? 'red' : 'blue');
-  tempMarker = L.marker(e.latlng, { icon: getIcon(color) }).addTo(map);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+  map.on('click', (e) => {
+    if (myRole === 'Admin') return; // Admin får inte gissa
+    if (tempMarker) map.removeLayer(tempMarker);
+    const color = myRole === 'Första Klass' ? 'red' : 'blue';
+    tempMarker = L.marker(e.latlng, { icon: getIcon(color) }).addTo(map);
+  });
 }
 
 // ══════════════════════════════════════════
-// SPELFLÖDE
+// 1. GÅ MED I SPELET
 // ══════════════════════════════════════════
+function joinGame(role) {
+  myRole = role;
+  document.getElementById('role-indicator').innerText = role;
 
-function startGame(selectedMode) {
-  mode = selectedMode;
-  score1 = 0; score2 = 0;
-  currentRound = 0;
-  turn = 'Första Klass';
-  questions = [...questionsData].sort(() => Math.random() - 0.5);
-  document.getElementById('winner-overlay').classList.remove('show');
-  document.getElementById('score-board').textContent = `Första Klass: 0 | Dressinen: 0`;
+  if (role === 'Admin') {
+    document.getElementById('admin-bar').style.display = 'flex';
+    // Admin skapar en ny spelomgång i databasen
+    questions = [...questionsData].sort(() => Math.random() - 0.5);
+    gameRef.set({
+      state: 'waiting',
+      round: 0,
+      scores: { 'Första Klass': 0, 'Dressinen': 0 },
+      guesses: null
+    });
+  }
 
-  if (mode === 'lag') {
-    showScreen('video-screen');
-    const vid = document.getElementById('intro-video');
-    if (vid) vid.play().catch(() => {});
-  } else {
-    loadRound();
+  // Börja lyssna på förändringar i realtid
+  gameRef.on('value', (snapshot) => {
+    const data = snapshot.val();
+    if (!data) return;
+    syncGameState(data);
+  });
+}
+
+// ══════════════════════════════════════════
+// 2. HANTERA REALSTIDSÄNDRINGAR
+// ══════════════════════════════════════════
+function syncGameState(data) {
+  // Uppdatera Poäng
+  document.getElementById('score-board').innerText = `FK: ${data.scores['Första Klass']} | D: ${data.scores['Dressinen']}`;
+
+  if (data.state === 'waiting') {
+    showScreen('turn-screen');
+    document.getElementById('turn-text').innerText = (myRole === 'Admin') ? "Redo? Tryck Starta Mål!" : "Väntar på Spelmästaren...";
+  } 
+  else if (data.state === 'guessing') {
+    startRoundUI(data);
+  } 
+  else if (data.state === 'results') {
+    showResultsUI(data);
   }
 }
 
-function finishVideo() {
-  const vid = document.getElementById('intro-video');
-  if (vid) vid.pause();
-  loadRound();
-}
-
-function loadRound() {
-  stopTimer();
-  clearTempMarker();
-  roundMarkers.forEach(m => map && map.removeLayer(m));
-  roundMarkers = [];
-  redGuess = null; blueGuess = null;
-
-  document.getElementById('result-box').classList.remove('visible');
-  document.getElementById('action-btn').style.display = 'inline-block';
-  document.getElementById('next-btn').style.display = 'none';
-
-  document.getElementById('turn-text').textContent =
-    mode === 'solo' ? 'Redo att gissa?' : `${turn}, dags att resa!`;
-  showScreen('turn-screen');
-}
-
-function startRound() {
+// ══════════════════════════════════════════
+// 3. UI: GISSNINGSRUNDA PÅGÅR
+// ══════════════════════════════════════════
+function startRoundUI(data) {
   showScreen('game-area');
   initMap();
   map.setView([20, 0], 2);
 
-  const q = questions[currentRound % questions.length];
-  const img = document.getElementById('game-image');
-  img.alt = q.name;
-  
-  // Bild-fallback om en länk mot förmodan skulle vara trasig
-  img.onerror = () => {
-    img.src = 'https://via.placeholder.com/400x250?text=Bild+saknas';
-  };
-  
-  // Hämtar en direktbild baserat på platsens namn. Stabil metod som blockeras sällan.
-  img.src = `https://loremflickr.com/800/600/${encodeURIComponent(q.name)}?lock=${currentRound}`;
+  // Rensa gamla pins
+  if (tempMarker) { map.removeLayer(tempMarker); tempMarker = null; }
+  roundMarkers.forEach(m => map.removeLayer(m));
+  roundMarkers = [];
 
-  if (mode === 'lag') startTimer();
-}
+  document.getElementById('game-image').src = `https://loremflickr.com/800/600/${encodeURIComponent(data.question.name)}`;
+  const resultBox = document.getElementById('result-box');
+  const actionBtn = document.getElementById('action-btn');
 
-function processGuess() {
-  stopTimer();
-  const guess = tempMarker ? tempMarker.getLatLng() : null;
+  // KOLLA VEM SOM GISSAT
+  const fkGuessed = data.guesses && data.guesses['Första Klass'];
+  const dGuessed = data.guesses && data.guesses['Dressinen'];
 
-  if (mode === 'solo') {
-    redGuess = guess;
-    if (tempMarker) { tempMarker.setIcon(getIcon('green')); roundMarkers.push(tempMarker); tempMarker = null; }
-    showResults();
-
-  } else if (turn === 'Första Klass') {
-    redGuess = guess; 
-    if (tempMarker) {
-      tempMarker.setIcon(getIcon('red'));
-      tempMarker.setOpacity(0); // Dölj för lag 2
-      roundMarkers.push(tempMarker);
-      tempMarker = null;
+  if (myRole !== 'Admin') {
+    // ---- SPELARENS VY ----
+    const myGuess = data.guesses && data.guesses[myRole];
+    if (myGuess) {
+      // Om jag har gissat -> Lås skärmen
+      actionBtn.style.display = 'none';
+      resultBox.classList.add('visible');
+      document.getElementById('result-text').innerHTML = "<b>Gissning låst!</b> Kika på storbildsskärmen.";
+    } else {
+      // Jag har INTE gissat -> Öppen för gissning
+      actionBtn.style.display = 'block';
+      resultBox.classList.remove('visible');
     }
-    
-    turn = 'Dressinen';
-    document.getElementById('turn-text').textContent = `${turn}, dags att resa!`;
-    showScreen('turn-screen');
-
   } else {
-    blueGuess = guess;
-    if (tempMarker) { tempMarker.setIcon(getIcon('blue')); roundMarkers.push(tempMarker); tempMarker = null; }
-    showResults();
+    // ---- SPELMÄSTARENS VY ----
+    actionBtn.style.display = 'none';
+    resultBox.classList.add('visible');
+    document.getElementById('result-text').innerHTML = `
+      <b>Inväntar lag...</b><br>
+      Första Klass: ${fkGuessed ? '✅ Klar' : '⏳ Tänker'}<br>
+      Dressinen: ${dGuessed ? '✅ Klar' : '⏳ Tänker'}
+    `;
+
+    // Om båda har gissat -> Lås upp "Visa Resultat"-knappen för Admin
+    if (fkGuessed && dGuessed) {
+      document.getElementById('admin-reveal').style.display = 'block';
+    } else {
+      document.getElementById('admin-reveal').style.display = 'none';
+    }
   }
 }
 
-function showResults() {
-  roundMarkers.forEach(m => m.setOpacity(1)); 
-
-  const q = questions[currentRound % questions.length];
-  const correct = L.marker([q.lat, q.lng], { icon: getIcon('gold') }).addTo(map);
-  correct.bindPopup(`<strong>${q.name}</strong>`).openPopup();
-  roundMarkers.push(correct);
-
-  const dist1 = redGuess ? map.distance(redGuess, [q.lat, q.lng]) / 1000 : null;
-  const dist2 = blueGuess ? map.distance(blueGuess, [q.lat, q.lng]) / 1000 : null;
-
-  let resultText = '';
-  if (mode === 'solo') {
-    resultText = `Din gissning var <strong>${fmt(dist1)}</strong> från målet.`;
-  } else {
-    let roundWinner = '';
-    if (dist1 !== null || dist2 !== null) {
-      if      (dist1 === null)  { score2++; roundWinner = '🏆 Dressinen vann rundan! (FK missade)'; }
-      else if (dist2 === null)  { score1++; roundWinner = '🏆 Första Klass vann rundan! (D missade)'; }
-      else if (dist1 < dist2)   { score1++; roundWinner = '🏆 Första Klass vann rundan!'; }
-      else if (dist2 < dist1)   { score2++; roundWinner = '🏆 Dressinen vann rundan!'; }
-      else                      { roundWinner = '🤝 Oavgjort!'; }
-    }
-    resultText =
-      `Första Klass: <strong>${fmt(dist1)}</strong> &nbsp;|&nbsp; Dressinen: <strong>${fmt(dist2)}</strong><br>
-       <span style="color:var(--gold)">${roundWinner}</span>`;
-    document.getElementById('score-board').textContent =
-      `Första Klass: ${score1} | Dressinen: ${score2}`;
-  }
-
-  document.getElementById('result-score').innerHTML = `📍 ${q.name}`;
-  document.getElementById('result-text').innerHTML = resultText;
-  document.getElementById('result-box').classList.add('visible');
+// ══════════════════════════════════════════
+// 4. UI: RESULTATREDOVISNING
+// ══════════════════════════════════════════
+function showResultsUI(data) {
   document.getElementById('action-btn').style.display = 'none';
 
-  const btn = document.getElementById('next-btn');
-  btn.style.display = 'inline-block';
-}
+  // Placera ut Rätt Svar
+  const correct = L.marker([data.question.lat, data.question.lng], { icon: getIcon('gold') }).addTo(map);
+  correct.bindPopup(`<strong>${data.question.name}</strong>`).openPopup();
+  roundMarkers.push(correct);
 
-function nextRound() {
-  if (mode === 'lag' && (score1 >= WIN_SCORE || score2 >= WIN_SCORE)) {
-    showWinnerOverlay();
-    return;
+  let g1 = data.guesses ? data.guesses['Första Klass'] : null;
+  let g2 = data.guesses ? data.guesses['Dressinen'] : null;
+
+  let d1 = g1 ? map.distance([g1.lat, g1.lng], [data.question.lat, data.question.lng]) / 1000 : null;
+  let d2 = g2 ? map.distance([g2.lat, g2.lng], [data.question.lat, data.question.lng]) / 1000 : null;
+
+  // Placera ut Lagens gissningar
+  if (g1) roundMarkers.push(L.marker([g1.lat, g1.lng], { icon: getIcon('red') }).addTo(map).bindPopup('Första Klass'));
+  if (g2) roundMarkers.push(L.marker([g2.lat, g2.lng], { icon: getIcon('blue') }).addTo(map).bindPopup('Dressinen'));
+
+  // Zooma ut för att se alla
+  const group = new L.featureGroup(roundMarkers);
+  map.fitBounds(group.getBounds(), { padding: [50, 50] });
+
+  // Visa Vinnartext
+  let roundWinner = 'Båda missade!';
+  if (d1 !== null || d2 !== null) {
+    if (d1 === null) roundWinner = '🏆 Dressinen vann rundan!';
+    else if (d2 === null) roundWinner = '🏆 Första Klass vann rundan!';
+    else if (d1 < d2) roundWinner = '🏆 Första Klass vann rundan!';
+    else if (d2 < d1) roundWinner = '🏆 Dressinen vann rundan!';
+    else roundWinner = '🤝 Oavgjort!';
   }
 
-  currentRound++;
-  turn = 'Första Klass';
-  if (currentRound >= questions.length) {
-    showWinnerOverlay();
-    return;
+  document.getElementById('result-score').innerHTML = `📍 ${data.question.name}`;
+  document.getElementById('result-text').innerHTML = `
+    Första Klass: <strong>${fmt(d1)}</strong> &nbsp;|&nbsp; Dressinen: <strong>${fmt(d2)}</strong><br>
+    <span style="color:var(--gold); font-size: 1.2em; display:block; margin-top:5px;">${roundWinner}</span>
+  `;
+  document.getElementById('result-box').classList.add('visible');
+
+  // Uppdatera Spelmästarens knappar
+  if (myRole === 'Admin') {
+    document.getElementById('admin-reveal').style.display = 'none';
+    document.getElementById('admin-next').style.display = 'block';
+    document.getElementById('admin-next').innerText = 'Starta Nästa Runda';
   }
-  loadRound();
 }
 
-function showWinnerOverlay() {
-  stopTimer();
-  let title, subtitle;
-  if (score1 > score2) {
-    title = 'Första Klass vinner!';
-    subtitle = `Grattis! Matchen vanns med ${score1}–${score2}. 🎉`;
-  } else if (score2 > score1) {
-    title = 'Dressinen vinner!';
-    subtitle = `Grattis! Matchen vanns med ${score2}–${score1}. 🎉`;
-  } else {
-    title = 'Oavgjort!';
-    subtitle = 'Ingen vann matchen denna gång.';
-  }
-  document.getElementById('winner-title').textContent = title;
-  document.getElementById('winner-subtitle').textContent = subtitle;
-  document.getElementById('winner-score').textContent = `Första Klass ${score1} – ${score2} Dressinen`;
-  document.getElementById('winner-overlay').classList.add('show');
-}
-
-function goToMenu() { stopTimer(); location.reload(); }
-
-function clearTempMarker() {
-  if (tempMarker && map) { map.removeLayer(tempMarker); tempMarker = null; }
-}
-
-// ── Knapp-lyssnare ─────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('btn-lag')?.addEventListener('click', () => startGame('lag'));
-  document.getElementById('btn-solo')?.addEventListener('click', () => startGame('solo'));
-  document.getElementById('btn-skip-video')?.addEventListener('click', finishVideo);
-  document.getElementById('intro-video')?.addEventListener('ended', finishVideo);
-  document.getElementById('btn-start-round')?.addEventListener('click', startRound);
-  document.getElementById('action-btn')?.addEventListener('click', processGuess);
-  document.getElementById('next-btn')?.addEventListener('click', nextRound);
-  document.getElementById('menu-btn')?.addEventListener('click', goToMenu);
-
-  // Overlay-knappar
-  document.getElementById('btn-play-again')?.addEventListener('click', () => startGame('lag'));
-  document.getElementById('btn-winner-menu')?.addEventListener('click', goToMenu);
+// ══════════════════════════════════════════
+// 5. SPELARENS KNAPP: Lås in gissning
+// ══════════════════════════════════════════
+document.getElementById('action-btn').addEventListener('click', () => {
+  if (!tempMarker) return alert("Sätt ut en pin på kartan först!");
+  const pos = tempMarker.getLatLng();
+  
+  // Skickar gissningen till Firebase
+  gameRef.child('guesses/' + myRole).set({
+    lat: pos.lat,
+    lng: pos.lng
+  });
 });
+
+// ══════════════════════════════════════════
+// 6. SPELMÄSTARENS KNAPPAR (ADMIN)
+// ══════════════════════════════════════════
+function adminNextRound() {
+  gameRef.once('value').then(snap => {
+    let data = snap.val();
+    let nextRound = (data.round || 0) + 1;
+    let q = questions[nextRound % questions.length];
+
+    // Uppdaterar databasen -> Triggar ny runda hos alla
+    gameRef.update({
+      state: 'guessing',
+      round: nextRound,
+      question: q,
+      guesses: null
+    });
+    document.getElementById('admin-next').style.display = 'none';
+  });
+}
+
+function adminReveal() {
+  gameRef.once('value').then(snap => {
+    let data = snap.val();
+    let q = data.question;
+    let g1 = data.guesses ? data.guesses['Första Klass'] : null;
+    let g2 = data.guesses ? data.guesses['Dressinen'] : null;
+
+    let s1 = data.scores['Första Klass'] || 0;
+    let s2 = data.scores['Dressinen'] || 0;
+
+    let d1 = g1 ? map.distance([g1.lat, g1.lng], [q.lat, q.lng]) : null;
+    let d2 = g2 ? map.distance([g2.lat, g2.lng], [q.lat, q.lng]) : null;
+
+    // Poänguträkning
+    if (d1 !== null && d2 !== null) {
+      if (d1 < d2) s1++; else if (d2 < d1) s2++;
+    } else if (d1 !== null) { s1++; } else if (d2 !== null) { s2++; }
+
+    // Tvingar spelet till resultatskärmen och sparar poängen
+    gameRef.update({
+      state: 'results',
+      scores: { 'Första Klass': s1, 'Dressinen': s2 }
+    });
+  });
+}
