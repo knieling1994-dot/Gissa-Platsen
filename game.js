@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════
    NÄRMAST PLATSEN VINNER — MULTIPLAYER (Firebase)
-   Uppdaterad: Snabba, fasta och synkade bilder
+   Alla skärmar styrs av Spelmästaren = Samma bilder!
 ═══════════════════════════════════════════ */
 
 'use strict';
@@ -29,7 +29,7 @@ let myRole = '';
 let map = null, tempMarker = null, roundMarkers = [];
 let questions = [];
 
-// ── Frågedatabas (Nu med fasta, snabba bildlänkar) ──
+// ── Frågedatabas (Fasta och direkta bildlänkar) ──
 const questionsData = [
   { name: 'Eiffeltornet', lat: 48.8584, lng: 2.2945, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a8/Tour_Eiffel_Wikimedia_Commons.jpg/800px-Tour_Eiffel_Wikimedia_Commons.jpg' },
   { name: 'Berlinmuren', lat: 52.5167, lng: 13.3775, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Berlinermauer.jpg/800px-Berlinermauer.jpg' },
@@ -40,15 +40,7 @@ const questionsData = [
   { name: 'Kinesiska muren', lat: 40.4319, lng: 116.5704, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/23/The_Great_Wall_of_China_at_Jinshanling-edit.jpg/800px-The_Great_Wall_of_China_at_Jinshanling-edit.jpg' },
   { name: 'Frihetsgudinnan', lat: 40.6892, lng: -74.0445, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Statue_of_Liberty_7.jpg/600px-Statue_of_Liberty_7.jpg' },
   { name: 'Taj Mahal', lat: 27.1751, lng: 78.0421, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/bd/Taj_Mahal%2C_Agra%2C_India_edit3.jpg/800px-Taj_Mahal%2C_Agra%2C_India_edit3.jpg' },
-  { name: 'Akropolis', lat: 37.9715, lng: 23.7267, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/da/The_Parthenon_in_Athens.jpg/800px-The_Parthenon_in_Athens.jpg' },
-  { name: 'Petra', lat: 30.3285, lng: 35.4444, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/Jordan_Petra_Al-Khazneh_BW_1.jpg/800px-Jordan_Petra_Al-Khazneh_BW_1.jpg' },
-  { name: 'Sagrada Familia', lat: 41.4036, lng: 2.1744, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/be/Sagrada_Familia_01.jpg/800px-Sagrada_Familia_01.jpg' },
-  { name: 'Mount Everest', lat: 27.9881, lng: 86.9250, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Everest_North_Face_toward_Base_Camp_Tibet_Luca_Galuzzi_2006.jpg/800px-Everest_North_Face_toward_Base_Camp_Tibet_Luca_Galuzzi_2006.jpg' },
-  { name: 'Burj Khalifa', lat: 25.1972, lng: 55.2744, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/93/Burj_Khalifa.jpg/800px-Burj_Khalifa.jpg' },
-  { name: 'Stonehenge', lat: 51.1789, lng: -1.8262, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/Stonehenge2007_07_30.jpg/800px-Stonehenge2007_07_30.jpg' },
-  { name: 'Sydney Opera House', lat: -33.8568, lng: 151.2153, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Sydney_NSW_2000%2C_Australia_-_panoramio%2887%29.jpg/800px-Sydney_NSW_2000%2C_Australia_-_panoramio%2887%29.jpg' },
-  { name: 'Hollywoodskylten', lat: 34.1341, lng: -118.3215, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Hollywoodsign.jpg/800px-Hollywoodsign.jpg' },
-  { name: 'Golden Gate-bron', lat: 37.8199, lng: -122.4783, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/GoldenGateBridge-001.jpg/800px-GoldenGateBridge-001.jpg' }
+  { name: 'Akropolis', lat: 37.9715, lng: 23.7267, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/da/The_Parthenon_in_Athens.jpg/800px-The_Parthenon_in_Athens.jpg' }
 ];
 
 // ── Hjälpfunktioner ──
@@ -75,7 +67,7 @@ function initMap() {
   map = L.map('map', { minZoom: 2 }).setView([20, 0], 2);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
   map.on('click', (e) => {
-    if (myRole === 'Admin') return; 
+    if (myRole === 'Admin') return; // Spelmästaren får inte klicka
     if (tempMarker) map.removeLayer(tempMarker);
     const color = myRole === 'Första Klass' ? 'red' : 'blue';
     tempMarker = L.marker(e.latlng, { icon: getIcon(color) }).addTo(map);
@@ -85,21 +77,24 @@ function initMap() {
 // ══════════════════════════════════════════
 // 1. GÅ MED I SPELET
 // ══════════════════════════════════════════
-function joinGame(role) {
+window.joinGame = function(role) {
   myRole = role;
   document.getElementById('role-indicator').innerText = role;
 
+  // Om jag är Spelmästare -> Nollställ databasen för ett nytt spel
   if (role === 'Admin') {
     document.getElementById('admin-bar').style.display = 'flex';
-    questions = [...questionsData].sort(() => Math.random() - 0.5);
+    questions = [...questionsData].sort(() => Math.random() - 0.5); // Bara admin blandar
     gameRef.set({
       state: 'waiting',
       round: 0,
       scores: { 'Första Klass': 0, 'Dressinen': 0 },
-      guesses: null
+      guesses: null,
+      question: null
     });
   }
 
+  // Börja lyssna på vad som händer i databasen
   gameRef.on('value', (snapshot) => {
     const data = snapshot.val();
     if (!data) return;
@@ -115,7 +110,7 @@ function syncGameState(data) {
 
   if (data.state === 'waiting') {
     showScreen('turn-screen');
-    document.getElementById('turn-text').innerText = (myRole === 'Admin') ? "Redo? Tryck Starta Mål!" : "Väntar på Spelmästaren...";
+    document.getElementById('turn-text').innerText = (myRole === 'Admin') ? "Redo? Tryck på Starta Mål i menyn!" : "Väntar på Spelmästaren...";
   } 
   else if (data.state === 'guessing') {
     startRoundUI(data);
@@ -137,14 +132,10 @@ function startRoundUI(data) {
   roundMarkers.forEach(m => map.removeLayer(m));
   roundMarkers = [];
 
-  // Använder nu den fasta bilden som skickats via Firebase
+  // 🔴 HÄR ÄR MAGIN: Alla hämtar exakt samma bild från databasen!
   const imgEl = document.getElementById('game-image');
   imgEl.src = data.question.img;
-  
-  // Reservplan ifall länken ändå skulle vara trasig
-  imgEl.onerror = () => {
-    imgEl.src = `https://en.wikipedia.org/wiki/Special:FilePath/${encodeURIComponent(data.question.name.replace(/ /g, '_'))}.jpg`;
-  };
+  imgEl.onerror = () => { imgEl.src = 'https://via.placeholder.com/600x400?text=Kunde+inte+ladda+bild'; };
 
   const resultBox = document.getElementById('result-box');
   const actionBtn = document.getElementById('action-btn');
@@ -227,7 +218,7 @@ function showResultsUI(data) {
 // ══════════════════════════════════════════
 // 5. SPELARENS KNAPP: Lås in gissning
 // ══════════════════════════════════════════
-document.getElementById('action-btn').addEventListener('click', () => {
+document.getElementById('action-btn')?.addEventListener('click', () => {
   if (!tempMarker) return alert("Sätt ut en pin på kartan först!");
   const pos = tempMarker.getLatLng();
   
@@ -240,10 +231,12 @@ document.getElementById('action-btn').addEventListener('click', () => {
 // ══════════════════════════════════════════
 // 6. SPELMÄSTARENS KNAPPAR (ADMIN)
 // ══════════════════════════════════════════
-function adminNextRound() {
+window.adminNextRound = function() {
   gameRef.once('value').then(snap => {
     let data = snap.val();
-    let nextRound = (data.round || 0) + 1;
+    let nextRound = data.state === 'waiting' ? 0 : (data.round + 1);
+    
+    // Om frågorna tar slut börjar de om från början
     let q = questions[nextRound % questions.length];
 
     gameRef.update({
@@ -256,7 +249,7 @@ function adminNextRound() {
   });
 }
 
-function adminReveal() {
+window.adminReveal = function() {
   gameRef.once('value').then(snap => {
     let data = snap.val();
     let q = data.question;
